@@ -1,0 +1,12 @@
+button,a0
+buzzer,3
+hub 75,pin arduino board,   
+r1,11
+oe,9
+clk,13
+lat,8
+g1,gnd
+a,4
+b,5
+c,6
+d,7
