@@ -13,7 +13,8 @@
 void setup()
 {
   Serial.begin(9600);
-
+  delay(1000);
+  Serial.println("SYSTEM BEGIN");
   loadConfig(appConfig);
   triggerInit();
   displayInit();
