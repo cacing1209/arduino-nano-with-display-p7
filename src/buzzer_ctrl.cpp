@@ -5,17 +5,21 @@
 namespace {
 
 struct BuzzStep {
-  uint16_t freqHz;  // 0 = jeda diam
+  bool on;
   uint16_t durMs;
 };
 
-// Pakai tone() (LEDC di balik layar), bukan digitalWrite. Buzzer pasif butuh
-// square wave ini; buzzer aktif yang sudah punya oscillator tetap bunyi karena
-// pin-nya tetap digetarkan, cuma nadanya nurut oscillator sendiri.
-constexpr BuzzStep kStart[] = {{2400, 90}};
-constexpr BuzzStep kTick[] = {{2000, 45}};
-constexpr BuzzStep kTimeUp[] = {{2600, 160}, {0, 90}, {2600, 160}, {0, 90}, {2600, 700}};
-constexpr BuzzStep kGameOver[] = {{1900, 180}, {0, 60}, {1300, 420}};
+// Buzzer aktif: cuma digital on/off, nadanya dari oscillator buzzer sendiri.
+// Driver S8050 NPN = base ketarik HIGH bikin transistor nyala, jadi aktif HIGH.
+// Kalau modul buzzer lu ternyata aktif LOW, tinggal balik dua konstanta ini.
+constexpr uint8_t kBuzzOn = HIGH;
+constexpr uint8_t kBuzzOff = LOW;
+
+// Nada nggak bisa dibedain, jadi tiap event dibedain lewat pola durasi.
+constexpr BuzzStep kStart[] = {{true, 90}};
+constexpr BuzzStep kTick[] = {{true, 45}};
+constexpr BuzzStep kTimeUp[] = {{true, 160}, {false, 90}, {true, 160}, {false, 90}, {true, 700}};
+constexpr BuzzStep kGameOver[] = {{true, 180}, {false, 60}, {true, 420}};
 
 const BuzzStep *steps = nullptr;
 uint8_t stepCount = 0;
@@ -24,11 +28,7 @@ unsigned long stepUntilMs = 0;
 
 void applyStep() {
   const BuzzStep &s = steps[stepIndex];
-  if (s.freqHz == 0) {
-    noTone(PIN_BUZZER);
-  } else {
-    tone(PIN_BUZZER, s.freqHz);
-  }
+  digitalWrite(PIN_BUZZER, s.on ? kBuzzOn : kBuzzOff);
   stepUntilMs = millis() + s.durMs;
 }
 
@@ -36,7 +36,6 @@ void applyStep() {
 
 void buzzerInit() {
   pinMode(PIN_BUZZER, OUTPUT);
-  digitalWrite(PIN_BUZZER, LOW);
   buzzerStop();
 }
 
@@ -68,8 +67,7 @@ void buzzerStop() {
   steps = nullptr;
   stepCount = 0;
   stepIndex = 0;
-  noTone(PIN_BUZZER);
-  digitalWrite(PIN_BUZZER, LOW);
+  digitalWrite(PIN_BUZZER, kBuzzOff);
 }
 
 void buzzerTick() {

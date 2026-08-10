@@ -36,7 +36,8 @@ namespace
 
 void setup()
 {
-  Serial.begin(9600);
+  // Harus sama dengan monitor_speed di platformio.ini.
+  Serial.begin(115200);
   delay(1000);
   Serial.println("SYSTEM BEGIN");
   loadConfig(appConfig);
