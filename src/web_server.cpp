@@ -68,10 +68,10 @@ void fillConfigJson(JsonObject obj, const AppConfig &cfg) {
   obj["colorBg"] = cfg.colorBg;
 
   // Batas-batas ikut dikirim biar UI nggak perlu hardcode.
-  obj["panelWidth"] = PANEL_RES_X;
-  obj["panelHeight"] = PANEL_RES_Y;
-  obj["minDrawWidth"] = PANEL_MIN_DRAW_W;
-  obj["minDrawHeight"] = PANEL_MIN_DRAW_H;
+  // Batas margin dikirim sudah jadi, bukan lebar panel mentah: offset perataan
+  // panel ikut kepotong di sini, biar UI nggak perlu tahu soal itu.
+  obj["marginMaxX"] = MARGIN_MAX_X;
+  obj["marginMaxY"] = MARGIN_MAX_Y;
   obj["countdownMinMs"] = COUNTDOWN_MIN_MS;
   obj["countdownMaxMs"] = COUNTDOWN_MAX_MS;
   obj["volumeMax"] = DF_VOLUME_MAX;

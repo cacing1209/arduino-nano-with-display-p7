@@ -116,9 +116,10 @@ unsigned long finalHoldUntilMs = 0;
 
 Box currentBox() {
   Box b;
-  b.x = appConfig.marginLeft;
+  b.x = PANEL_X_OFFSET + appConfig.marginLeft;
   b.y = appConfig.marginTop;
-  b.w = static_cast<int16_t>(PANEL_RES_X) - appConfig.marginLeft - appConfig.marginRight;
+  b.w = static_cast<int16_t>(PANEL_RES_X) - PANEL_X_OFFSET - appConfig.marginLeft -
+        appConfig.marginRight;
   b.h = static_cast<int16_t>(PANEL_RES_Y) - appConfig.marginTop - appConfig.marginBottom;
   return b;
 }
@@ -173,6 +174,7 @@ constexpr uint8_t kSegDigits[10] = {
 
 constexpr int16_t kSegMinThickness = 2;
 constexpr int16_t kSegGapPreferred = 2;  // celah antar glyph
+constexpr int16_t kSegColonMinW = 2;
 
 struct SegLayout {
   int16_t dw;      // lebar satu angka
@@ -183,13 +185,12 @@ struct SegLayout {
   int16_t totalW;  // lebar "MM:SS" utuh, buat nengahin
 };
 
-// Titik dua sengaja lebih sempit dari tebal segmen: di lebar 64 px, tiap px yang
-// nggak kepakai titik dua langsung nambah lebar keempat angkanya.
-constexpr int16_t segColonW(int16_t t) { return t > 4 ? t - 2 : 2; }
+// Titik dua sengaja lebih sempit dari tebal segmen: di lebar segini, tiap px
+// yang nggak kepakai titik dua langsung nambah lebar keempat angkanya.
+constexpr int16_t segColonW(int16_t t) { return t > 4 ? t - 2 : kSegColonMinW; }
 
 // "MM:SS" = 4 angka + 1 titik dua + 4 celah.
-bool segFits(const Box &b, int16_t t, int16_t gap, SegLayout &out) {
-  const int16_t colonW = segColonW(t);
+bool segFits(const Box &b, int16_t t, int16_t gap, int16_t colonW, SegLayout &out) {
   const int16_t dw = static_cast<int16_t>((b.w - colonW - 4 * gap) / 4);
   // Celah di tengah angka minimal 2 px, kalau nggak "0" kelihatan kayak balok isi.
   if (dw < 2 * t + 2) return false;
@@ -206,12 +207,17 @@ bool segFits(const Box &b, int16_t t, int16_t gap, SegLayout &out) {
 }
 
 // Tinggi angka = tinggi kotak gambar, jadi tebal segmen yang diincer diturunkan
-// dari tinggi itu. Kalau nggak muat, celah antar angka dikorbanin dulu sebelum
-// tebalnya diturunin. false = kotaknya kekecilan buat 7-segment.
+// dari tinggi itu. Kalau nggak muat, yang dikorbanin berurutan: celah antar
+// angka, lalu lebar titik dua, baru terakhir tebal segmennya — tebal yang
+// diminta user dipertahanin selama masih mungkin. false = kotaknya kekecilan
+// buat 7-segment.
 bool segLayout(const Box &b, uint8_t thickness, SegLayout &out) {
   const int16_t want = static_cast<int16_t>(b.h / 7 + thickness - 1);
   for (int16_t t = want; t >= kSegMinThickness; --t) {
-    if (segFits(b, t, kSegGapPreferred, out) || segFits(b, t, 1, out)) return true;
+    const int16_t colonW = segColonW(t);
+    if (segFits(b, t, kSegGapPreferred, colonW, out)) return true;
+    if (segFits(b, t, 1, colonW, out)) return true;
+    if (segFits(b, t, 1, kSegColonMinW, out)) return true;
   }
   return false;
 }

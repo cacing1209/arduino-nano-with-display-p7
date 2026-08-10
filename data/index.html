@@ -259,11 +259,10 @@ function apply(cfg) {
     'Ketik angkanya aja, titik dua nyusul sendiri. Rentang ' +
     formatDuration(cfg.countdownMinMs) + ' - ' + formatDuration(cfg.countdownMaxMs) + '.';
   els.marginHint.textContent =
-    'Kiri+kanan maks ' + (cfg.panelWidth - cfg.minDrawWidth) +
-    ' px, atas+bawah maks ' + (cfg.panelHeight - cfg.minDrawHeight) +
-    ' px. Lebih dari itu dipotong otomatis.';
-  els.marginLeft.max = els.marginRight.max = cfg.panelWidth - cfg.minDrawWidth;
-  els.marginTop.max = els.marginBottom.max = cfg.panelHeight - cfg.minDrawHeight;
+    'Margin 0 sudah pas di tengah. Kiri+kanan maks ' + cfg.marginMaxX +
+    ' px, atas+bawah maks ' + cfg.marginMaxY + ' px. Lebih dari itu dipotong otomatis.';
+  els.marginLeft.max = els.marginRight.max = cfg.marginMaxX;
+  els.marginTop.max = els.marginBottom.max = cfg.marginMaxY;
 }
 
 function say(text, cls) {

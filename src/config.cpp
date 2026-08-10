@@ -85,8 +85,8 @@ bool clampConfig(AppConfig &cfg) {
     changed = true;
   }
 
-  changed |= clampMarginPair(cfg.marginLeft, cfg.marginRight, PANEL_RES_X - PANEL_MIN_DRAW_W);
-  changed |= clampMarginPair(cfg.marginTop, cfg.marginBottom, PANEL_RES_Y - PANEL_MIN_DRAW_H);
+  changed |= clampMarginPair(cfg.marginLeft, cfg.marginRight, MARGIN_MAX_X);
+  changed |= clampMarginPair(cfg.marginTop, cfg.marginBottom, MARGIN_MAX_Y);
 
   if (cfg.dfVolume > DF_VOLUME_MAX) {
     cfg.dfVolume = DF_VOLUME_MAX;

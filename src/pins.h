@@ -36,6 +36,16 @@ constexpr uint16_t PANEL_RES_X = 64;
 constexpr uint16_t PANEL_RES_Y = 32;
 constexpr uint8_t PANEL_CHAIN = 1;
 
-// Sisa area gambar minimal setelah margin.
+// Titik tengah panel ini meleset ke kanan: dicoba langsung di panelnya, angka
+// baru kelihatan pas di tengah kalau area gambar mulai dari x=2. Offset ini
+// dipakai sebelum margin dari web, jadi margin 0 = sudah pas tengah dan user
+// nggak perlu nambal pakai margin kiri 2.
+constexpr uint8_t PANEL_X_OFFSET = 2;
+
+// Sisa area gambar minimal setelah offset + margin.
 constexpr uint8_t PANEL_MIN_DRAW_W = 16;
 constexpr uint8_t PANEL_MIN_DRAW_H = 8;
+
+// Batas total margin yang masih nyisain area gambar minimal.
+constexpr uint8_t MARGIN_MAX_X = PANEL_RES_X - PANEL_X_OFFSET - PANEL_MIN_DRAW_W;
+constexpr uint8_t MARGIN_MAX_Y = PANEL_RES_Y - PANEL_MIN_DRAW_H;
