@@ -69,6 +69,14 @@ bool clampU8(uint8_t &value, uint8_t min, uint8_t max) {
 bool clampConfig(AppConfig &cfg) {
   bool changed = false;
 
+  // Layar cuma nampilin MM:SS, jadi pecahan detik dibuang: sisa 50 ms dari
+  // setting versi lama bikin layar tunggu nampilin satu detik lebih banyak dari
+  // yang di-set (detik dibulatkan ke atas pas digambar).
+  if (cfg.countdownMs % 1000 != 0) {
+    cfg.countdownMs -= cfg.countdownMs % 1000;
+    changed = true;
+  }
+
   if (cfg.countdownMs < COUNTDOWN_MIN_MS) {
     cfg.countdownMs = COUNTDOWN_MIN_MS;
     changed = true;

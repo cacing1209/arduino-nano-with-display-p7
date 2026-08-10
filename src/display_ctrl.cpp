@@ -29,12 +29,11 @@ constexpr uint16_t rgb565From(uint32_t rgb) {
                 static_cast<uint8_t>(rgb));
 }
 
-constexpr uint16_t kColorMsAccent = rgb565(150, 150, 150);  // milidetik, sengaja diredam
-
 constexpr uint32_t kUrgentThresholdMs = 10000;
 
-// Font classic cuma punya stroke 1 px dan nggak ada varian bold-nya. "Tebal"
-// dipalsuin dengan nge-print teks yang sama beberapa kali digeser 1 px, jadi
+// Cuma kepakai di jalur fallback font classic (lihat drawCountdownLayout): font
+// classic stroke-nya 1 px dan nggak ada varian bold-nya. "Tebal" dipalsuin
+// dengan nge-print teks yang sama beberapa kali digeser 1 px, jadi
 // nggak perlu nambah font ke flash. Geseran tetap 1 px di semua text size:
 // yang dicari efek stroke lebih gemuk, bukan skala huruf.
 struct BoldOffset {
@@ -49,8 +48,9 @@ constexpr uint8_t boldPasses(uint8_t thickness) {
 constexpr int16_t boldExtraW(uint8_t thickness) { return thickness >= 2 ? 1 : 0; }
 constexpr int16_t boldExtraH(uint8_t thickness) { return thickness >= 3 ? 1 : 0; }
 
-// ~50 fps. Lebih cepat cuma bikin digit milidetik blur dan makan CPU.
-constexpr unsigned long kRenderIntervalMs = 20;
+// ~20 fps. Yang berubah cuma digit detik, jadi lebih cepat nggak nambah apa-apa
+// selain beban CPU. Masih cukup rapat biar digit ganti bareng beep buzzer.
+constexpr unsigned long kRenderIntervalMs = 50;
 
 // Kotak area gambar setelah margin diterapkan.
 struct Box {
@@ -147,48 +147,143 @@ void drawOneLine(const Box &b, const char *text, uint8_t size, uint16_t color) {
            color);
 }
 
-void drawTwoLine(const Box &b, const char *top, uint8_t topSize, uint16_t topColor,
-                 const char *bottom, uint8_t bottomSize, uint16_t bottomColor, int16_t gap) {
-  const int16_t topH = textH(topSize);
-  const int16_t totalH = topH + gap + textH(bottomSize);
-  const int16_t y0 = b.y + (b.h - totalH) / 2;
+// --- Angka 7-segment ---
+// Font classic (dan font bitmap apa pun) kalah di dua sisi: ditinggiin sampai 32
+// px lewat text size, lebar "MM:SS" jadi 87 px padahal panelnya 64; mau pakai
+// font proporsional yang tinggi, tabelnya makan flash dan lebarnya tetap ~17 px
+// per angka. Digit 7-segment digambar dari rect, jadi lebar dan tinggi bisa
+// disetel lepas satu sama lain: 13x32 px per angka pas ngisi panel, tanpa data
+// font sama sekali. Bonusnya, "ketebalan" di web jadi tebal segmen beneran,
+// bukan smear 1 px kayak di font classic.
 
-  drawText(b.x + (b.w - textW(strlen(top), topSize)) / 2, y0, top, topSize, topColor);
-  drawText(b.x + (b.w - textW(strlen(bottom), bottomSize)) / 2, y0 + topH + gap, bottom, bottomSize,
-           bottomColor);
+// bit0..bit6 = segmen A..G. A=atas, B=kanan atas, C=kanan bawah, D=bawah,
+// E=kiri bawah, F=kiri atas, G=tengah.
+constexpr uint8_t kSegDigits[10] = {
+    0b0111111,  // 0
+    0b0000110,  // 1
+    0b1011011,  // 2
+    0b1001111,  // 3
+    0b1100110,  // 4
+    0b1101101,  // 5
+    0b1111101,  // 6
+    0b0000111,  // 7
+    0b1111111,  // 8
+    0b1101111,  // 9
+};
+
+constexpr int16_t kSegMinThickness = 2;
+constexpr int16_t kSegGapPreferred = 2;  // celah antar glyph
+
+struct SegLayout {
+  int16_t dw;      // lebar satu angka
+  int16_t dh;      // tinggi satu angka
+  int16_t t;       // tebal segmen
+  int16_t colonW;  // lebar titik dua
+  int16_t gap;     // celah antar glyph
+  int16_t totalW;  // lebar "MM:SS" utuh, buat nengahin
+};
+
+// Titik dua sengaja lebih sempit dari tebal segmen: di lebar 64 px, tiap px yang
+// nggak kepakai titik dua langsung nambah lebar keempat angkanya.
+constexpr int16_t segColonW(int16_t t) { return t > 4 ? t - 2 : 2; }
+
+// "MM:SS" = 4 angka + 1 titik dua + 4 celah.
+bool segFits(const Box &b, int16_t t, int16_t gap, SegLayout &out) {
+  const int16_t colonW = segColonW(t);
+  const int16_t dw = static_cast<int16_t>((b.w - colonW - 4 * gap) / 4);
+  // Celah di tengah angka minimal 2 px, kalau nggak "0" kelihatan kayak balok isi.
+  if (dw < 2 * t + 2) return false;
+  // 3 batang horizontal + celah minimal 2 px di antaranya.
+  if (b.h < 3 * t + 4) return false;
+
+  out.dw = dw;
+  out.dh = b.h;
+  out.t = t;
+  out.colonW = colonW;
+  out.gap = gap;
+  out.totalW = static_cast<int16_t>(4 * dw + colonW + 4 * gap);
+  return true;
 }
 
-// Pilih layout terbesar yang masih muat di kotak, dari MM:SS gede 2 baris
-// sampai MM:SS aja. Kalau semua kesempitan, opsi terakhir kepotong clip box.
-void drawCountdownLayout(const Box &b, const char *mmss, const char *msPart, const char *full,
-                         uint16_t color) {
-  if (b.w >= textW(5, 2) && b.h >= textH(2) + 3 + textH(1)) {
-    drawTwoLine(b, mmss, 2, color, msPart, 1, kColorMsAccent, 3);
-  } else if (b.w >= textW(8, 1) && b.h >= textH(1)) {  // "MM:SS:cc" = 8 karakter
-    drawOneLine(b, full, 1, color);
-  } else if (b.w >= textW(5, 1) && b.h >= textH(1) * 2 + 1) {
-    drawTwoLine(b, mmss, 1, color, msPart, 1, kColorMsAccent, 1);
-  } else {
-    drawOneLine(b, mmss, 1, color);
+// Tinggi angka = tinggi kotak gambar, jadi tebal segmen yang diincer diturunkan
+// dari tinggi itu. Kalau nggak muat, celah antar angka dikorbanin dulu sebelum
+// tebalnya diturunin. false = kotaknya kekecilan buat 7-segment.
+bool segLayout(const Box &b, uint8_t thickness, SegLayout &out) {
+  const int16_t want = static_cast<int16_t>(b.h / 7 + thickness - 1);
+  for (int16_t t = want; t >= kSegMinThickness; --t) {
+    if (segFits(b, t, kSegGapPreferred, out) || segFits(b, t, 1, out)) return true;
   }
+  return false;
+}
+
+void drawSegDigit(int16_t x, int16_t y, const SegLayout &L, uint8_t digit, uint16_t color) {
+  const uint8_t mask = kSegDigits[digit];
+  const int16_t yMid = y + (L.dh - L.t) / 2;
+  // Vertikal atas ditarik sampai nutup batang tengah, biar sudutnya nyambung.
+  const int16_t upperH = yMid + L.t - y;
+  const int16_t lowerH = y + L.dh - yMid;
+  const int16_t xRight = x + L.dw - L.t;
+
+  if (mask & 0x01) matrix->fillRect(x, y, L.dw, L.t, color);               // A
+  if (mask & 0x02) matrix->fillRect(xRight, y, L.t, upperH, color);        // B
+  if (mask & 0x04) matrix->fillRect(xRight, yMid, L.t, lowerH, color);     // C
+  if (mask & 0x08) matrix->fillRect(x, y + L.dh - L.t, L.dw, L.t, color);  // D
+  if (mask & 0x10) matrix->fillRect(x, yMid, L.t, lowerH, color);          // E
+  if (mask & 0x20) matrix->fillRect(x, y, L.t, upperH, color);             // F
+  if (mask & 0x40) matrix->fillRect(x, yMid, L.dw, L.t, color);            // G
+}
+
+// Dua kotak, ditaruh di 1/4 dan 3/4 tinggi angka biar sejajar sama celah antar
+// batang.
+void drawSegColon(int16_t x, int16_t y, const SegLayout &L, uint16_t color) {
+  matrix->fillRect(x, y + L.dh / 4 - L.colonW / 2, L.colonW, L.colonW, color);
+  matrix->fillRect(x, y + (3 * L.dh) / 4 - L.colonW / 2, L.colonW, L.colonW, color);
+}
+
+void drawSegTime(const Box &b, const SegLayout &L, const char *text, uint16_t color) {
+  int16_t x = b.x + (b.w - L.totalW) / 2;
+  const int16_t y = b.y + (b.h - L.dh) / 2;
+
+  for (const char *p = text; *p != '\0'; ++p) {
+    if (*p == ':') {
+      drawSegColon(x, y, L, color);
+      x += L.colonW + L.gap;
+    } else if (*p >= '0' && *p <= '9') {
+      drawSegDigit(x, y, L, static_cast<uint8_t>(*p - '0'), color);
+      x += L.dw + L.gap;
+    }
+  }
+}
+
+void drawCountdownLayout(const Box &b, const char *mmss, uint16_t color) {
+  SegLayout seg;
+  if (segLayout(b, appConfig.textThickness, seg)) {
+    drawSegTime(b, seg, mmss, color);
+    return;
+  }
+
+  // Margin-nya ekstrem sampai 7-segment nggak kebentuk lagi; font classic masih
+  // kebaca di kotak sekecil itu. Opsi terakhir kepotong clip box — sengaja,
+  // biar tetap kelihatan ada angka daripada layar kosong.
+  const uint8_t size = (b.w >= textW(5, 2) && b.h >= textH(2)) ? 2 : 1;
+  drawOneLine(b, mmss, size, color);
 }
 
 uint16_t runningColor(uint32_t remainingMs) {
   return rgb565From(remainingMs <= kUrgentThresholdMs ? appConfig.colorUrgent : appConfig.colorRun);
 }
 
-void formatTime(uint32_t ms, char *mmss, size_t mmssLen, char *msPart, size_t msPartLen,
-                char *full, size_t fullLen) {
-  const uint32_t totalSec = ms / 1000;
+// Detik dibulatkan ke ATAS. Tanpa digit milidetik, motong ke bawah bikin dua
+// masalah: angka awal (misal 05:00) cuma nongol sekejap, dan detik terakhir
+// nampilin 00:00 selama sedetik penuh padahal waktunya belum habis. Dengan
+// dibulatin ke atas, tiap angka kelihatan sedetik penuh dan 00:00 cuma muncul
+// pas waktunya benar-benar nol.
+void formatTime(uint32_t ms, char *mmss, size_t mmssLen) {
+  const uint32_t totalSec = (ms + 999) / 1000;
   const unsigned long mm = totalSec / 60;
   const unsigned long ss = totalSec % 60;
-  // Milidetik dipotong (bukan dibulatin) ke 2 digit: dibulatin bisa nongol "100"
-  // dan bikin angka kelihatan nambah pas sisa waktu justru berkurang.
-  const unsigned long cs = (ms % 1000) / 10;
 
   snprintf(mmss, mmssLen, "%02lu:%02lu", mm, ss);
-  snprintf(msPart, msPartLen, "%02lu", cs);
-  snprintf(full, fullLen, "%02lu:%02lu:%02lu", mm, ss, cs);
 }
 
 // Background cuma ngisi area gambar, bukan sepanjang panel: bagian margin tetap
@@ -201,21 +296,21 @@ void drawBackground(const Box &b) {
 // bothBuffers=true buat frame diam (idle / freeze): kalau cuma satu buffer yang
 // keisi, layar balik ke frame lama begitu ada flip berikutnya.
 void renderFrame(uint32_t ms, uint16_t color, bool bothBuffers) {
-  char mmss[8], msPart[4], full[16];
-  formatTime(ms, mmss, sizeof(mmss), msPart, sizeof(msPart), full, sizeof(full));
+  char mmss[8];
+  formatTime(ms, mmss, sizeof(mmss));
 
   const Box box = currentBox();
   matrix->setClipBox(box);
 
   matrix->clearScreen();
   drawBackground(box);
-  drawCountdownLayout(box, mmss, msPart, full, color);
+  drawCountdownLayout(box, mmss, color);
   matrix->flipDMABuffer();
 
   if (bothBuffers) {
     matrix->clearScreen();
     drawBackground(box);
-    drawCountdownLayout(box, mmss, msPart, full, color);
+    drawCountdownLayout(box, mmss, color);
   }
 }
 

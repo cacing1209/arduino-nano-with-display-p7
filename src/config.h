@@ -23,7 +23,7 @@ struct AppConfig {
 extern AppConfig appConfig;
 
 constexpr uint32_t COUNTDOWN_MIN_MS = 1000UL;
-constexpr uint32_t COUNTDOWN_MAX_MS = 5999990UL;  // 99:59:99, batas format MM:SS:cc
+constexpr uint32_t COUNTDOWN_MAX_MS = 5999000UL;  // 99:59, batas format MM:SS
 constexpr uint8_t DF_VOLUME_MAX = 30;
 constexpr uint8_t DF_TRACK_MIN = 1;
 // Lantai brightness biar display nggak bisa disetel gelap total lewat web.

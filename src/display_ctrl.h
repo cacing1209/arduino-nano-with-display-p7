@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // Lama frame terakhir ditahan sebelum balik ke layar tunggu. Tanpa ini angka
-// 00:00:000 nggak sempat kelihatan karena state langsung pindah ke IDLE.
+// 00:00 nggak sempat kelihatan karena state langsung pindah ke IDLE.
 constexpr unsigned long DISPLAY_FINAL_HOLD_MS = 3000;
 
 void displayInit();
@@ -11,8 +11,8 @@ void displayInit();
 // Layar tunggu: durasi yang lagi ke-arm. Cuma redraw kalau config berubah.
 void displayIdle();
 
-// Countdown MM:SS:cc (milidetik 2 digit alias perseratus detik). Aman dipanggil
-// tiap loop(), throttle diurus di dalam.
+// Countdown MM:SS, pecahan detik dibulatkan ke atas. Aman dipanggil tiap
+// loop(), throttle diurus di dalam.
 void displayCountdown(uint32_t remainingMs);
 
 // Gambar frame terakhir ronde dan tahan selama DISPLAY_FINAL_HOLD_MS.

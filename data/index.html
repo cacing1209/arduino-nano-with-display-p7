@@ -80,7 +80,7 @@
 
   <section>
     <h2>Waktu countdown</h2>
-    <label for="countdown">Durasi (MM:SS atau MM:SS:ms)</label>
+    <label for="countdown">Durasi (MM:SS)</label>
     <input type="text" id="countdown" inputmode="numeric" autocomplete="off" placeholder="05:00">
     <p class="hint" id="countdownHint"></p>
   </section>
@@ -168,17 +168,16 @@ els.brightness.addEventListener('input', function () {
 
 // Keyboard numerik di HP nggak punya tombol ':', jadi begitu field dikosongin
 // user kejebak nggak bisa ngetik ulang formatnya. Solusinya: user cukup ngetik
-// angka (MMSSms), pemisahnya disisipin di sini.
+// angka (MMSS), pemisahnya disisipin di sini.
 function onlyDigits(text) { return text.replace(/\D/g, ''); }
 
 function maskDuration(digits) {
-  var d = digits.slice(0, 6);
+  var d = digits.slice(0, 4);
   if (d.length <= 2) return d;
-  if (d.length <= 4) return d.slice(0, 2) + ':' + d.slice(2);
-  return d.slice(0, 2) + ':' + d.slice(2, 4) + ':' + d.slice(4);
+  return d.slice(0, 2) + ':' + d.slice(2);
 }
 
-// Isi field selalu hasil mask, jadi tiap digit posisinya sudah pasti: MMSSms.
+// Isi field selalu hasil mask, jadi tiap digit posisinya sudah pasti: MMSS.
 // Grup yang belum lengkap dianggap nol. null kalau field kosong.
 function fieldToMs() {
   var d = onlyDigits(els.countdown.value);
@@ -187,9 +186,7 @@ function fieldToMs() {
   var mm = +d.slice(0, 2).padEnd(2, '0');
   // Field bisa nampung "99" di posisi detik, mask nggak bisa nolak per-digit.
   var ss = Math.min(59, +d.slice(2, 4).padEnd(2, '0'));
-  // 2 digit terakhir = perseratus detik, jadi dikali 10 buat balik ke milidetik.
-  var cs = d.length > 4 ? +d.slice(4).padEnd(2, '0') : 0;
-  return mm * 60000 + ss * 1000 + cs * 10;
+  return mm * 60000 + ss * 1000;
 }
 
 // Reformat sambil ngetik tanpa bikin caret loncat ke ujung: posisi caret
@@ -216,13 +213,12 @@ els.countdown.addEventListener('blur', function () {
   if (ms !== null) els.countdown.value = formatDuration(ms);
 });
 
-// Dipotong ke 2 digit, sama persis kayak yang digambar di panel.
+// Dibulatkan ke atas, sama persis kayak yang digambar di panel.
 function formatDuration(ms) {
-  var mm = Math.floor(ms / 60000);
-  var ss = Math.floor(ms / 1000) % 60;
-  var cs = Math.floor((ms % 1000) / 10);
-  var base = String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
-  return cs ? base + ':' + String(cs).padStart(2, '0') : base;
+  var totalSec = Math.ceil(ms / 1000);
+  var mm = Math.floor(totalSec / 60);
+  var ss = totalSec % 60;
+  return String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
 }
 
 // Config nyimpen warna sebagai angka 0xRRGGBB, <input type=color> maunya string.
