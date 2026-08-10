@@ -1,6 +1,39 @@
 ESP32 devkit v1 - P5 64x32 countdown timer
 (sumber kebenaran ada di src/pins.h, file ini cuma ringkasan buat nyolok kabel)
 
+update connection pcb
+--------------------------------
+R1 - 2
+G1 - 15
+B1 - 4
+R2 - 16
+G2 - 27
+B2 - 17
+A - 5
+B - 18
+C - 19
+D - 21
+E - 12
+LAT - 26
+OE - 25
+CLK - 22
+
+BOM
+
+2 x 74HC245D SMD SOP20
+1 x Resistor 56 Ohm SMD 1206
+1 x Resistor 10K Ohm SMD 1206 
+1 x Transistor S8050 SMD SOT23
+
+DFPlayer RX TX : 13, 14
+Buzzer : 23
+RTC DS3231 SCL SDA : 33, 32
+
+example code file example.cpp
+note: not use RTC
+-----------------------------------------
+
+
 HUB75 (panel P5 64x32, scan 1/16, driver FM6126A)
 r1,25
 g1,26
