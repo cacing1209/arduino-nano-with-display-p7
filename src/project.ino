@@ -3,12 +3,36 @@
 
 #include <Arduino.h>
 
+#include "buzzer_ctrl.h"
 #include "config.h"
 #include "dfplayer_ctrl.h"
 #include "display_ctrl.h"
 #include "pins.h"
 #include "state.h"
 #include "web_server.h"
+
+namespace
+{
+
+  // Beep tiap detik selama sisa waktu di bawah ambang ini.
+  constexpr uint32_t kBuzzLastSeconds = 3;
+
+  // Detik yang terakhir dibunyiin, biar satu detik cuma dapat satu beep.
+  uint32_t lastBeepSec = 0;
+
+  void beepLastSeconds()
+  {
+    // Dibulatkan ke atas biar sinkron sama angka yang lagi kelihatan di panel.
+    const uint32_t sec = (runtime.remainingMs + 999) / 1000;
+    if (sec == lastBeepSec)
+      return;
+
+    lastBeepSec = sec;
+    if (sec > 0 && sec <= kBuzzLastSeconds)
+      buzzerPlay(BuzzPattern::TICK);
+  }
+
+} // namespace
 
 void setup()
 {
@@ -17,6 +41,7 @@ void setup()
   Serial.println("SYSTEM BEGIN");
   loadConfig(appConfig);
   triggerInit();
+  buzzerInit();
   displayInit();
   dfInit();
   webServerInit();
@@ -27,6 +52,7 @@ void setup()
 void loop()
 {
   dfTick();
+  buzzerTick();
 
   const bool trigger = triggerPressed();
 
@@ -37,7 +63,11 @@ void loop()
     {
       dfStopIdle();
       dfPlayVoice(DF_VOICE_START);
+      buzzerPlay(BuzzPattern::START);
       timerStart(appConfig.countdownMs);
+      // Reset di sini, bukan di beepLastSeconds(), biar durasi yang lebih pendek
+      // dari ambang beep tetap kebunyiin dari detik pertama.
+      lastBeepSec = 0;
     }
     break;
 
@@ -48,6 +78,7 @@ void loop()
       displayFreezeFinal(runtime.remainingMs);
       timerStop();
       dfPlayVoice(DF_VOICE_GAME_OVER);
+      buzzerPlay(BuzzPattern::GAME_OVER);
       dfPlayIdleLoop();
     }
     else if (timerTick())
@@ -55,7 +86,12 @@ void loop()
       displayFreezeFinal(0);
       timerStop();
       dfPlayVoice(DF_VOICE_TIME_UP);
+      buzzerPlay(BuzzPattern::TIME_UP);
       dfPlayIdleLoop();
+    }
+    else
+    {
+      beepLastSeconds();
     }
     break;
   }

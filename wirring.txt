@@ -1,68 +1,54 @@
 ESP32 devkit v1 - P5 64x32 countdown timer
 (sumber kebenaran ada di src/pins.h, file ini cuma ringkasan buat nyolok kabel)
 
-update connection pcb
---------------------------------
-R1 - 2
-G1 - 15
-B1 - 4
-R2 - 16
-G2 - 27
-B2 - 17
-A - 5
-B - 18
-C - 19
-D - 21
-E - 12
-LAT - 26
-OE - 25
-CLK - 22
-
-BOM
+BOM PCB
 
 2 x 74HC245D SMD SOP20
 1 x Resistor 56 Ohm SMD 1206
-1 x Resistor 10K Ohm SMD 1206 
+1 x Resistor 10K Ohm SMD 1206
 1 x Transistor S8050 SMD SOT23
 
-DFPlayer RX TX : 13, 14
-Buzzer : 23
-RTC DS3231 SCL SDA : 33, 32
-
-example code file example.cpp
-note: not use RTC
------------------------------------------
-
-
 HUB75 (panel P5 64x32, scan 1/16, driver FM6126A)
-r1,25
-g1,26
-b1,27
-r2,14
-g2,12
-b2,13
-a,23
-b,19
-c,5
-d,17
-e,18
-lat,4
-oe,15
-clk,16
-gnd,gnd (minimal 2 jalur, panel narik arus gede)
+R1  - 2
+G1  - 15
+B1  - 4
+R2  - 16
+G2  - 27
+B2  - 17
+A   - 5
+B   - 18
+C   - 19
+D   - 21
+E   - 12
+LAT - 26
+OE  - 25
+CLK - 22
+gnd - gnd (minimal 2 jalur, panel narik arus gede)
 
-catatan: g2 di GPIO12 = strapping pin. Kalau panel nahan pin ini HIGH pas power
-on, ESP32 gagal boot. Nyalain panel setelah ESP32 boot, atau kasih pulldown.
+catatan strapping pin:
+- GPIO12 (E) = MTDI. Kalau ketarik HIGH pas power on, ESP32 gagal boot (flash
+  voltage ke-set 1.8V). Scan 1/16 nggak butuh jalur E, tapi library tetap
+  ngedrive pin-nya, jadi pasang pulldown 10K di jalur ini.
+- GPIO2 (R1) dan GPIO15 (G1) juga strapping. Lewat buffer 74HC245 biasanya aman,
+  tapi kalau board susah masuk mode download, cabut panel dulu.
 
 DFPlayer Mini (HardwareSerial 2, 9600 8N1)
-rx esp32,33  <- tx dfplayer (pasang resistor 1k seri di jalur ini)
-tx esp32,32  -> rx dfplayer
+rx esp32,13  <- tx dfplayer (pasang resistor 1k seri di jalur ini)
+tx esp32,14  -> rx dfplayer
 vcc,5v
 gnd,gnd
 spk_1 / spk_2,speaker
 
+buzzer
+buzzer,23 (lewat driver S8050 + 10K base resistor)
+dikendaliin pakai tone(), jadi buzzer pasif maupun aktif dua-duanya bunyi.
+
 tombol trigger
-btn,21 (INPUT_PULLUP, aktif LOW, ke gnd)
+btn,32 (INPUT_PULLUP, aktif LOW, ke gnd)
+GPIO32 itu pad RTC SCL di PCB. RTC DS3231 nggak dipasang, jadi pad-nya dipakai
+buat tombol. Jangan pakai GPIO16, itu sudah jadi R2 panel.
+(kalau nanti RTC jadi dipasang: SCL 33, SDA 32, tombol pindah ke GPIO0 atau
+GPIO34/35 + resistor pullup 10K eksternal, karena 34-39 nggak punya pullup internal.)
 
 power
 panel P5 butuh supply 5V terpisah, jangan ambil dari pin 5V board.
@@ -79,4 +65,5 @@ bukan 1.mp3. Dua-duanya dialamati langsung sama protokol DFPlayer, jadi urutan
 nyalin file ke kartu nggak ngaruh.
 
 akses settings
-konek wifi AP "P5-TIMER" (password: timer12345), buka http://192.168.4.1
+konek wifi AP "P5-TIMER" (password ada di AP_PASSWORD src/config.h),
+buka http://192.168.4.1
