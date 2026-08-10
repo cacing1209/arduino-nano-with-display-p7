@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P5 Countdown Timer</title>
+<style>
+  :root {
+    --bg: #12151b;
+    --card: #1b2029;
+    --line: #2c3340;
+    --text: #e8ecf3;
+    --muted: #8b95a7;
+    --accent: #ffaa00;
+    --ok: #2ecc71;
+    --err: #ff5a4d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px;
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--text);
+  }
+  main { max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  section {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 16px; margin-bottom: 14px;
+  }
+  h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); margin: 0 0 14px; font-weight: 600;
+  }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 5px; }
+  input[type=text], input[type=number] {
+    width: 100%; padding: 9px 10px; font-size: 15px; font-family: inherit;
+    background: #10141a; color: var(--text);
+    border: 1px solid var(--line); border-radius: 7px;
+  }
+  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .row + .row { margin-top: 14px; }
+  .row label { margin: 0; flex: 1; }
+  input[type=range] { flex: 2; accent-color: var(--accent); }
+  input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+  .val {
+    min-width: 34px; text-align: right;
+    font-variant-numeric: tabular-nums; font-weight: 600;
+  }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  button {
+    width: 100%; padding: 12px; font-size: 15px; font-weight: 600; font-family: inherit;
+    background: var(--accent); color: #10141a;
+    border: 0; border-radius: 8px; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  #msg { min-height: 20px; margin-top: 10px; font-size: 13px; text-align: center; }
+  #msg.ok { color: var(--ok); }
+  #msg.err { color: var(--err); }
+</style>
+</head>
+<body>
+<main>
+  <h1>P5 Countdown Timer</h1>
+  <p class="sub">Panel 64&times;32 &middot; setting tersimpan di ESP32</p>
+
+  <section>
+    <h2>Waktu countdown</h2>
+    <label for="countdown">Durasi (MM:SS atau MM:SS:mmm)</label>
+    <input type="text" id="countdown" inputmode="numeric" placeholder="05:00">
+    <p class="hint" id="countdownHint"></p>
+  </section>
+
+  <section>
+    <h2>Display</h2>
+    <label>Margin / bezel (pixel)</label>
+    <div class="grid">
+      <div><label for="marginTop">Atas</label><input type="number" id="marginTop" min="0"></div>
+      <div><label for="marginBottom">Bawah</label><input type="number" id="marginBottom" min="0"></div>
+      <div><label for="marginLeft">Kiri</label><input type="number" id="marginLeft" min="0"></div>
+      <div><label for="marginRight">Kanan</label><input type="number" id="marginRight" min="0"></div>
+    </div>
+    <p class="hint" id="marginHint"></p>
+    <div class="row">
+      <label for="brightness">Kecerahan</label>
+      <input type="range" id="brightness" max="255">
+      <span class="val" id="brightnessVal">0</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>DFPlayer</h2>
+    <div class="row">
+      <label for="dfVolume">Volume</label>
+      <input type="range" id="dfVolume" min="0" max="30">
+      <span class="val" id="dfVolumeVal">0</span>
+    </div>
+    <div class="row">
+      <label for="idleMusicEnabled">Musik idle</label>
+      <input type="checkbox" id="idleMusicEnabled">
+    </div>
+    <div class="row">
+      <label for="idleTrack">Track idle (/MP3/000n.mp3)</label>
+      <input type="number" id="idleTrack" min="1" max="255" style="flex:2">
+    </div>
+  </section>
+
+  <button id="save">Simpan</button>
+  <div id="msg"></div>
+</main>
+
+<script>
+'use strict';
+
+var limits = {};
+var els = {};
+['countdown','marginTop','marginBottom','marginLeft','marginRight',
+ 'dfVolume','idleTrack','idleMusicEnabled','dfVolumeVal','msg','save',
+ 'countdownHint','marginHint','brightness','brightnessVal']
+  .forEach(function (id) { els[id] = document.getElementById(id); });
+
+els.dfVolume.addEventListener('input', function () {
+  els.dfVolumeVal.textContent = els.dfVolume.value;
+});
+els.brightness.addEventListener('input', function () {
+  els.brightnessVal.textContent = els.brightness.value;
+});
+
+// "MM:SS" atau "MM:SS:mmm" -> milidetik. null kalau formatnya nggak kebaca.
+function parseDuration(text) {
+  var m = /^\s*(\d{1,2}):([0-5]?\d)(?::(\d{1,3}))?\s*$/.exec(text);
+  if (!m) return null;
+  var ms = m[3] ? m[3].padEnd(3, '0') : '0';
+  return (+m[1]) * 60000 + (+m[2]) * 1000 + (+ms);
+}
+
+function formatDuration(ms) {
+  var mm = Math.floor(ms / 60000);
+  var ss = Math.floor(ms / 1000) % 60;
+  var mmm = ms % 1000;
+  var base = String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
+  return mmm ? base + ':' + String(mmm).padStart(3, '0') : base;
+}
+
+function apply(cfg) {
+  limits = cfg;
+  els.countdown.value = formatDuration(cfg.countdownMs);
+  els.marginTop.value = cfg.marginTop;
+  els.marginBottom.value = cfg.marginBottom;
+  els.marginLeft.value = cfg.marginLeft;
+  els.marginRight.value = cfg.marginRight;
+  els.dfVolume.max = cfg.volumeMax;
+  els.dfVolume.value = cfg.dfVolume;
+  els.dfVolumeVal.textContent = cfg.dfVolume;
+  els.idleTrack.value = cfg.idleTrack;
+  els.idleMusicEnabled.checked = cfg.idleMusicEnabled;
+  els.brightness.min = cfg.brightnessMin;
+  els.brightness.value = cfg.brightness;
+  els.brightnessVal.textContent = cfg.brightness;
+
+  els.countdownHint.textContent =
+    'Rentang ' + formatDuration(cfg.countdownMinMs) + ' - ' + formatDuration(cfg.countdownMaxMs) + '.';
+  els.marginHint.textContent =
+    'Kiri+kanan maks ' + (cfg.panelWidth - cfg.minDrawWidth) +
+    ' px, atas+bawah maks ' + (cfg.panelHeight - cfg.minDrawHeight) +
+    ' px. Lebih dari itu dipotong otomatis.';
+  els.marginLeft.max = els.marginRight.max = cfg.panelWidth - cfg.minDrawWidth;
+  els.marginTop.max = els.marginBottom.max = cfg.panelHeight - cfg.minDrawHeight;
+}
+
+function say(text, cls) {
+  els.msg.textContent = text;
+  els.msg.className = cls || '';
+}
+
+function num(el) { return Math.max(0, parseInt(el.value, 10) || 0); }
+
+function load() {
+  fetch('/config')
+    .then(function (r) { return r.json(); })
+    .then(apply)
+    .catch(function () { say('Gagal ambil config dari device.', 'err'); });
+}
+
+els.save.addEventListener('click', function () {
+  var ms = parseDuration(els.countdown.value);
+  if (ms === null) {
+    say('Format waktu salah. Contoh: 05:00 atau 05:00:250', 'err');
+    return;
+  }
+
+  var body = {
+    countdownMs: ms,
+    marginTop: num(els.marginTop),
+    marginBottom: num(els.marginBottom),
+    marginLeft: num(els.marginLeft),
+    marginRight: num(els.marginRight),
+    dfVolume: num(els.dfVolume),
+    idleTrack: num(els.idleTrack),
+    idleMusicEnabled: els.idleMusicEnabled.checked,
+    brightness: num(els.brightness)
+  };
+
+  els.save.disabled = true;
+  say('Menyimpan...');
+
+  fetch('/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+    .then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    })
+    .then(function (cfg) {
+      // Device balikin nilai efektif, jadi form selalu nunjukin yang beneran kepakai.
+      apply(cfg);
+      say(cfg.clamped ? 'Tersimpan, sebagian nilai disesuaikan ke batas aman.' : 'Tersimpan.', 'ok');
+    })
+    .catch(function () { say('Gagal menyimpan.', 'err'); })
+    .finally(function () { els.save.disabled = false; });
+});
+
+load();
+</script>
+</body>
+</html>

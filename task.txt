@@ -1,0 +1,129 @@
+Project: ESP32 HUB75 P5 32x64 countdown timer + DFPlayer + web config
+Base file: esp32_p5rgb_ntp_clock.ino (reuse struktur render & font yang ada)
+
+=== DISPLAY HARDWARE SPEC ===
+Panel: P5 full color LED module, SMD2121 1R1G1B
+Module dimension: 320x160mm, pixel pitch 5mm, density 40000 dots/m²
+Resolution: 64x32 pixel per module
+Scan mode: 1/16 constant current
+Brightness: 800 cd/m², best view distance 5-40m
+Driver IC: FM6126A
+
+=== HARDWARE PINS (JANGAN DIUBAH) ===
+Panel HUB75 (lib ESP32-HUB75-MatrixPanel-I2S-DMA):
+R1=25 G1=26 B1=27 R2=14 G2=12 B2=13 A=23 B=19 C=5 D=17 E=18 LAT=4 OE=15 CLK=16
+DFPlayer: HardwareSerial(2), begin(9600, SERIAL_8N1, RX=33, TX=32), lib DFRobotDFPlayerMini
+Trigger button: GPIO21, INPUT_PULLUP, active LOW, debounce software ~50ms
+
+=== SD CARD LAYOUT ===
+/MP3/0001.mp3      -> idle background music (loop)
+/ADVERT/0001.mp3   -> voice "mulai"
+/ADVERT/0002.mp3   -> voice "waktu habis"
+/ADVERT/0003.mp3   -> voice "game selesai"
+
+=== STATE MACHINE ===
+State IDLE:
+  - dfPlayer loop() musik idle (folder MP3)
+  - display: idle text/blank, tunggu trigger
+
+Trigger ditekan (dari IDLE):
+  - stop musik idle, play voice "mulai" (ADVERT track 1)
+  - masuk state RUNNING, mulai countdown dari appConfig.countdownMs
+  - display format MM:SS:mmm, update non-blocking
+
+State RUNNING -> habis ke 00:00:000 tanpa trigger lagi:
+  - play voice "waktu habis" (ADVERT track 2)
+  - balik ke IDLE, musik idle loop lagi
+
+State RUNNING -> trigger ditekan lagi (stop paksa sebelum habis):
+  - play voice "game selesai" (ADVERT track 3)
+  - balik ke IDLE, musik idle loop lagi
+
+Asumsi (override kalau salah):
+- Musik idle STOP total pas countdown jalan (bukan advertise/mixing, lebih simpel)
+- Trigger tetap responsive walau voice masih main
+- Voice pakai play() biasa, bukan advertise()
+
+=== WEB SETTINGS SERVICE ===
+Mode: WiFi AP+STA bersamaan (STA tetap konek buat NTP existing, AP buat akses settings lokal)
+IP: default ESP32 SoftAP 192.168.4.1
+Auth: WPA2 password AP sebagai satu-satunya lapis auth
+Server: ESPAsyncWebServer + AsyncTCP (non-blocking)
+UI: 1 halaman HTML vanilla JS (fetch), simpan di LittleFS, no framework
+
+Menu settings:
+1. Set waktu countdown (input MM:SS atau MM:SS:mmm)
+2. Display margin/bezel: top, bottom, left, right (satuan pixel)
+3. DFPlayer settings (minimal, jangan overengineer): volume slider 0-30, idle music on/off, idle track select
+
+=== FILE STRUCTURE (struct-based, per header per concern) ===
+project/
+├── project.ino          -> setup(), loop(), state machine transition, include semua header
+├── pins.h                -> definisi pin + hardware spec constant, TANPA logic
+├── config.h              -> struct AppConfig + save/load Preferences
+├── state.h               -> enum + struct runtime state (timer, trigger)
+├── display_ctrl.h/.cpp    -> render countdown ke matrix, apply margin
+├── dfplayer_ctrl.h/.cpp   -> wrapper semua command DFPlayer
+└── web_server.h/.cpp      -> AsyncWebServer routes + handler baca/tulis AppConfig
+
+--- pins.h ---
+constexpr uint8_t PIN_HUB75_R1 = 25; ... (semua 14 pin matrix)
+constexpr uint8_t PIN_DFPLAYER_RX = 33;
+constexpr uint8_t PIN_DFPLAYER_TX = 32;
+constexpr uint8_t PIN_TRIGGER_BTN = 21;
+constexpr uint16_t PANEL_RES_X = 64;
+constexpr uint16_t PANEL_RES_Y = 32;
+constexpr uint8_t  PANEL_CHAIN = 1;
+
+--- config.h ---
+struct AppConfig {
+  uint32_t countdownMs;      // default 300000 (5 menit)
+  uint8_t  marginTop;
+  uint8_t  marginBottom;
+  uint8_t  marginLeft;
+  uint8_t  marginRight;
+  uint8_t  dfVolume;         // 0-30
+  uint8_t  idleTrack;
+  bool     idleMusicEnabled;
+};
+void loadConfig(AppConfig &cfg);
+void saveConfig(const AppConfig &cfg);
+extern AppConfig appConfig;
+
+--- state.h ---
+enum class TimerState : uint8_t { IDLE, RUNNING };
+struct RuntimeState {
+  TimerState state = TimerState::IDLE;
+  uint32_t   remainingMs = 0;
+  unsigned long lastTickMs = 0;
+  bool       btnLastReading = HIGH;
+  unsigned long btnLastDebounceMs = 0;
+};
+extern RuntimeState runtime;
+
+--- display_ctrl.h/.cpp ---
+void displayInit();
+void displayIdle();
+void displayCountdown(uint32_t remainingMs);
+// margin geser origin & clipping, bukan crop hardware
+// pakai PANEL_RES_X/Y dari pins.h, jangan hardcode 64/32 di file lain
+
+--- dfplayer_ctrl.h/.cpp ---
+void dfInit();
+void dfPlayIdleLoop();
+void dfStopIdle();
+void dfPlayVoice(uint8_t advertTrack);  // 1=mulai, 2=waktu habis, 3=game selesai
+void dfApplyVolume(uint8_t vol);
+
+--- web_server.h/.cpp ---
+void webServerInit();
+// GET  /config  -> return AppConfig sbg JSON
+// POST /config  -> update field yang dikirim, validasi, saveConfig()
+
+=== INSTRUKSI EKSEKUSI ===
+- Semua include pins.h di file yang butuh pin, jangan re-declare pin di tempat lain
+- state.h & config.h isinya cuma definisi struct/enum + extern, TANPA logic — logic taro di .cpp masing-masing
+- main .ino hanya orchestration, TIDAK ada logic detail di dalamnya
+- Margin WAJIB divalidasi terhadap PANEL_RES_X/Y (marginTop+marginBottom < 32, marginLeft+marginRight < 64), kalau lewat batas clamp ke nilai aman minimal (sisain 8px tinggi, 16px lebar) dan kirim balik nilai ter-clamp di response POST /config
+- Kalau ada bagian ambigu, ambil keputusan simpel, tulis alasan sebagai comment, JANGAN berhenti nanya
+- Non-blocking wajib, delay() dilarang di loop()

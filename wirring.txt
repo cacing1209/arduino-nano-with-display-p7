@@ -1,12 +1,49 @@
-button,a0
-buzzer,3
-hub 75,pin arduino board,   
-r1,11
-oe,9
-clk,13
-lat,8
-g1,gnd
-a,4
-b,5
-c,6
-d,7
+ESP32 devkit v1 - P5 64x32 countdown timer
+(sumber kebenaran ada di src/pins.h, file ini cuma ringkasan buat nyolok kabel)
+
+HUB75 (panel P5 64x32, scan 1/16, driver FM6126A)
+r1,25
+g1,26
+b1,27
+r2,14
+g2,12
+b2,13
+a,23
+b,19
+c,5
+d,17
+e,18
+lat,4
+oe,15
+clk,16
+gnd,gnd (minimal 2 jalur, panel narik arus gede)
+
+catatan: g2 di GPIO12 = strapping pin. Kalau panel nahan pin ini HIGH pas power
+on, ESP32 gagal boot. Nyalain panel setelah ESP32 boot, atau kasih pulldown.
+
+DFPlayer Mini (HardwareSerial 2, 9600 8N1)
+rx esp32,33  <- tx dfplayer (pasang resistor 1k seri di jalur ini)
+tx esp32,32  -> rx dfplayer
+vcc,5v
+gnd,gnd
+spk_1 / spk_2,speaker
+
+tombol trigger
+btn,21 (INPUT_PULLUP, aktif LOW, ke gnd)
+
+power
+panel P5 butuh supply 5V terpisah, jangan ambil dari pin 5V board.
+gnd supply panel dan gnd esp32 harus disambung.
+
+isi SD card DFPlayer (FAT32)
+/MP3/0001.mp3   musik idle (loop)
+/01/001.mp3     voice "mulai"
+/01/002.mp3     voice "waktu habis"
+/01/003.mp3     voice "game selesai"
+
+nama folder dan nomor file harus persis kayak di atas: /01 bukan /1, 001.mp3
+bukan 1.mp3. Dua-duanya dialamati langsung sama protokol DFPlayer, jadi urutan
+nyalin file ke kartu nggak ngaruh.
+
+akses settings
+konek wifi AP "P5-TIMER" (password: timer12345), buka http://192.168.4.1
