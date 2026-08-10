@@ -10,8 +10,9 @@
 #include "state.h"
 #include "web_server.h"
 
-void setup() {
-  Serial.begin(115200);
+void setup()
+{
+  Serial.begin(9600);
 
   loadConfig(appConfig);
   triggerInit();
@@ -22,39 +23,48 @@ void setup() {
   dfPlayIdleLoop();
 }
 
-void loop() {
+void loop()
+{
   dfTick();
 
   const bool trigger = triggerPressed();
 
-  switch (runtime.state) {
-    case TimerState::IDLE:
-      if (trigger) {
-        dfStopIdle();
-        dfPlayVoice(DF_VOICE_START);
-        timerStart(appConfig.countdownMs);
-      }
-      break;
+  switch (runtime.state)
+  {
+  case TimerState::IDLE:
+    if (trigger)
+    {
+      dfStopIdle();
+      dfPlayVoice(DF_VOICE_START);
+      timerStart(appConfig.countdownMs);
+    }
+    break;
 
-    case TimerState::RUNNING:
-      if (trigger) {
-        // Stop paksa: sisa waktu dibekuin biar kelihatan berhenti di angka berapa.
-        displayFreezeFinal(runtime.remainingMs);
-        timerStop();
-        dfPlayVoice(DF_VOICE_GAME_OVER);
-        dfPlayIdleLoop();
-      } else if (timerTick()) {
-        displayFreezeFinal(0);
-        timerStop();
-        dfPlayVoice(DF_VOICE_TIME_UP);
-        dfPlayIdleLoop();
-      }
-      break;
+  case TimerState::RUNNING:
+    if (trigger)
+    {
+      // Stop paksa: sisa waktu dibekuin biar kelihatan berhenti di angka berapa.
+      displayFreezeFinal(runtime.remainingMs);
+      timerStop();
+      dfPlayVoice(DF_VOICE_GAME_OVER);
+      dfPlayIdleLoop();
+    }
+    else if (timerTick())
+    {
+      displayFreezeFinal(0);
+      timerStop();
+      dfPlayVoice(DF_VOICE_TIME_UP);
+      dfPlayIdleLoop();
+    }
+    break;
   }
 
-  if (runtime.state == TimerState::RUNNING) {
+  if (runtime.state == TimerState::RUNNING)
+  {
     displayCountdown(runtime.remainingMs);
-  } else {
+  }
+  else
+  {
     displayIdle();
   }
 }
