@@ -7,6 +7,7 @@
 #include <WiFi.h>
 
 #include "config.h"
+#include "debug.h"
 #include "dfplayer_ctrl.h"
 #include "display_ctrl.h"
 #include "pins.h"
@@ -63,6 +64,8 @@ void fillConfigJson(JsonObject obj, const AppConfig &cfg) {
   obj["colorRun"] = cfg.colorRun;
   obj["colorUrgent"] = cfg.colorUrgent;
   obj["textThickness"] = cfg.textThickness;
+  obj["bgEnabled"] = cfg.bgEnabled;
+  obj["colorBg"] = cfg.colorBg;
 
   // Batas-batas ikut dikirim biar UI nggak perlu hardcode.
   obj["panelWidth"] = PANEL_RES_X;
@@ -111,6 +114,8 @@ void handleConfigPost(AsyncWebServerRequest *request, JsonVariant &json) {
   takeU32(src, "colorRun", next.colorRun);
   takeU32(src, "colorUrgent", next.colorUrgent);
   takeU8(src, "textThickness", next.textThickness);
+  takeBool(src, "bgEnabled", next.bgEnabled);
+  takeU32(src, "colorBg", next.colorBg);
 
   const bool clamped = clampConfig(next);
 
@@ -134,10 +139,10 @@ void handleConfigPost(AsyncWebServerRequest *request, JsonVariant &json) {
 void webServerInit() {
   WiFi.mode(WIFI_AP);
   WiFi.softAP(AP_SSID, AP_PASSWORD);
-  Serial.printf("[web] SoftAP \"%s\" di http://%s\n", AP_SSID, WiFi.softAPIP().toString().c_str());
+  DBG_PRINTF("[web] SoftAP \"%s\" di http://%s\n", AP_SSID, WiFi.softAPIP().toString().c_str());
 
   fsMounted = LittleFS.begin(/*formatOnFail=*/true);
-  if (!fsMounted) Serial.println(F("[web] LittleFS gagal dimount"));
+  if (!fsMounted) DBG_PRINTLN(F("[web] LittleFS gagal dimount"));
 
   server.on("/config", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send(200, "application/json", configJson(appConfig, nullptr));

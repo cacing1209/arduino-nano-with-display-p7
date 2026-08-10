@@ -103,6 +103,8 @@ struct IdleSnapshot {
   uint8_t marginTop = 0, marginBottom = 0, marginLeft = 0, marginRight = 0;
   uint32_t colorIdle = 0;
   uint8_t textThickness = 0;
+  bool bgEnabled = false;
+  uint32_t colorBg = 0;
 };
 IdleSnapshot lastIdle;
 
@@ -189,6 +191,13 @@ void formatTime(uint32_t ms, char *mmss, size_t mmssLen, char *msPart, size_t ms
   snprintf(full, fullLen, "%02lu:%02lu:%02lu", mm, ss, cs);
 }
 
+// Background cuma ngisi area gambar, bukan sepanjang panel: bagian margin tetap
+// hitam supaya tetap kelihatan sebagai bezel, bukan bingkai warna.
+void drawBackground(const Box &b) {
+  if (!appConfig.bgEnabled) return;
+  matrix->fillRect(b.x, b.y, b.w, b.h, rgb565From(appConfig.colorBg));
+}
+
 // bothBuffers=true buat frame diam (idle / freeze): kalau cuma satu buffer yang
 // keisi, layar balik ke frame lama begitu ada flip berikutnya.
 void renderFrame(uint32_t ms, uint16_t color, bool bothBuffers) {
@@ -197,12 +206,15 @@ void renderFrame(uint32_t ms, uint16_t color, bool bothBuffers) {
 
   const Box box = currentBox();
   matrix->setClipBox(box);
+
   matrix->clearScreen();
+  drawBackground(box);
   drawCountdownLayout(box, mmss, msPart, full, color);
   matrix->flipDMABuffer();
 
   if (bothBuffers) {
     matrix->clearScreen();
+    drawBackground(box);
     drawCountdownLayout(box, mmss, msPart, full, color);
   }
 }
@@ -242,7 +254,8 @@ void displayIdle() {
       lastIdle.marginTop == appConfig.marginTop && lastIdle.marginBottom == appConfig.marginBottom &&
       lastIdle.marginLeft == appConfig.marginLeft && lastIdle.marginRight == appConfig.marginRight &&
       lastIdle.colorIdle == appConfig.colorIdle &&
-      lastIdle.textThickness == appConfig.textThickness) {
+      lastIdle.textThickness == appConfig.textThickness &&
+      lastIdle.bgEnabled == appConfig.bgEnabled && lastIdle.colorBg == appConfig.colorBg) {
     return;
   }
 
@@ -256,6 +269,8 @@ void displayIdle() {
   lastIdle.marginRight = appConfig.marginRight;
   lastIdle.colorIdle = appConfig.colorIdle;
   lastIdle.textThickness = appConfig.textThickness;
+  lastIdle.bgEnabled = appConfig.bgEnabled;
+  lastIdle.colorBg = appConfig.colorBg;
 }
 
 void displayCountdown(uint32_t remainingMs) {

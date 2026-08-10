@@ -16,6 +16,8 @@ struct AppConfig {
   uint32_t colorRun;         // 0xRRGGBB, countdown jalan
   uint32_t colorUrgent;      // 0xRRGGBB, 10 detik terakhir
   uint8_t textThickness;     // 1 = normal, 2 = tebal, 3 = ekstra tebal
+  bool bgEnabled;            // false = background hitam (panel mati)
+  uint32_t colorBg;          // 0xRRGGBB, cuma kepakai kalau bgEnabled
 };
 
 extern AppConfig appConfig;
@@ -34,6 +36,10 @@ constexpr uint8_t COLOR_MIN_LEVEL = 32;
 
 constexpr uint8_t TEXT_THICKNESS_MIN = 1;
 constexpr uint8_t TEXT_THICKNESS_MAX = 3;
+
+// Background sengaja nggak kena COLOR_MIN_LEVEL: hitam itu tampilan default
+// yang bener buat panel LED, bukan kesalahan setting kayak teks hitam.
+constexpr uint32_t COLOR_BG_DEFAULT = 0x000000UL;
 
 constexpr uint32_t COLOR_IDLE_DEFAULT = 0x006E82UL;
 constexpr uint32_t COLOR_RUN_DEFAULT = 0xFFAA00UL;

@@ -5,6 +5,7 @@
 
 #include "buzzer_ctrl.h"
 #include "config.h"
+#include "debug.h"
 #include "dfplayer_ctrl.h"
 #include "display_ctrl.h"
 #include "pins.h"
@@ -37,9 +38,8 @@ namespace
 
 void setup()
 {
-  Serial.begin(115200);
-  delay(1000);
-  Serial.println("SYSTEM BEGIN");
+  DBG_BEGIN(115200);
+  DBG_PRINTLN("SYSTEM BEGIN");
   loadConfig(appConfig);
   triggerInit();
   buzzerInit();

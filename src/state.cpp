@@ -1,5 +1,6 @@
 #include "state.h"
 
+#include "debug.h"
 #include "pins.h"
 
 RuntimeState runtime;
@@ -13,8 +14,8 @@ void triggerInit()
 
   // Idle harus kebaca 1 (ketarik pullup internal). Kalau di sini sudah 0,
   // berarti tombol nyangkut ke gnd atau kabelnya salah pin, bukan soal debounce.
-  Serial.printf("[btn] GPIO%u level awal=%d (harusnya 1)\n", PIN_TRIGGER_BTN,
-                digitalRead(PIN_TRIGGER_BTN));
+  DBG_PRINTF("[btn] GPIO%u level awal=%d (harusnya 1)\n", PIN_TRIGGER_BTN,
+             digitalRead(PIN_TRIGGER_BTN));
 }
 
 bool triggerPressed()
@@ -27,7 +28,7 @@ bool triggerPressed()
   {
     // Cuma di-print pas ada perubahan. Kalau tiap loop, serial kebanjiran
     // sampai nggak kebaca dan malah ikut ganggu timing.
-    Serial.printf("[btn] level=%d\n", level);
+    DBG_PRINTF("[btn] level=%d\n", level);
     runtime.btnLastReading = level;
     runtime.btnLastDebounceMs = millis();
     return false;
@@ -39,7 +40,7 @@ bool triggerPressed()
     return false;
 
   runtime.btnStableReading = level;
-  Serial.printf("[btn] stabil: %s\n", level ? "lepas" : "TEKAN");
+  DBG_PRINTF("[btn] stabil: %s\n", level ? "lepas" : "TEKAN");
   return !level; // press = transisi HIGH -> LOW
 }
 

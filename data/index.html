@@ -116,6 +116,15 @@
       <option value="2">Tebal</option>
       <option value="3">Ekstra tebal</option>
     </select>
+    <div class="row" style="margin-top:14px">
+      <label for="bgEnabled">Pakai background warna</label>
+      <input type="checkbox" id="bgEnabled">
+    </div>
+    <div class="row">
+      <label for="colorBg">Warna background</label>
+      <input type="color" id="colorBg" style="flex:2">
+    </div>
+    <p class="hint">Cuma ngisi area gambar, bagian margin tetap hitam.</p>
   </section>
 
   <section>
@@ -147,7 +156,7 @@ var els = {};
 ['countdown','marginTop','marginBottom','marginLeft','marginRight',
  'dfVolume','idleTrack','idleMusicEnabled','dfVolumeVal','msg','save',
  'countdownHint','marginHint','brightness','brightnessVal',
- 'colorIdle','colorRun','colorUrgent','textThickness']
+ 'colorIdle','colorRun','colorUrgent','textThickness','bgEnabled','colorBg']
   .forEach(function (id) { els[id] = document.getElementById(id); });
 
 els.dfVolume.addEventListener('input', function () {
@@ -220,6 +229,13 @@ function formatDuration(ms) {
 function toHex(n) { return '#' + (n & 0xffffff).toString(16).padStart(6, '0'); }
 function fromHex(el) { return parseInt(el.value.slice(1), 16) || 0; }
 
+// Picker background diredam pas toggle-nya mati, biar jelas lagi nggak kepakai.
+function syncBgEnabled() {
+  els.colorBg.disabled = !els.bgEnabled.checked;
+  els.colorBg.style.opacity = els.bgEnabled.checked ? '' : '.4';
+}
+els.bgEnabled.addEventListener('change', syncBgEnabled);
+
 function apply(cfg) {
   limits = cfg;
   els.countdown.value = formatDuration(cfg.countdownMs);
@@ -239,6 +255,9 @@ function apply(cfg) {
   els.colorRun.value = toHex(cfg.colorRun);
   els.colorUrgent.value = toHex(cfg.colorUrgent);
   els.textThickness.value = String(cfg.textThickness);
+  els.bgEnabled.checked = cfg.bgEnabled;
+  els.colorBg.value = toHex(cfg.colorBg);
+  syncBgEnabled();
 
   els.countdownHint.textContent =
     'Ketik angkanya aja, titik dua nyusul sendiri. Rentang ' +
@@ -286,7 +305,9 @@ els.save.addEventListener('click', function () {
     colorIdle: fromHex(els.colorIdle),
     colorRun: fromHex(els.colorRun),
     colorUrgent: fromHex(els.colorUrgent),
-    textThickness: num(els.textThickness)
+    textThickness: num(els.textThickness),
+    bgEnabled: els.bgEnabled.checked,
+    colorBg: fromHex(els.colorBg)
   };
 
   els.save.disabled = true;

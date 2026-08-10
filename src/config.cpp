@@ -100,6 +100,12 @@ bool clampConfig(AppConfig &cfg) {
   changed |= clampColor(cfg.colorUrgent);
   changed |= clampU8(cfg.textThickness, TEXT_THICKNESS_MIN, TEXT_THICKNESS_MAX);
 
+  // Background cuma dipotong ke 24 bit, tanpa lantai: hitam nilai yang sah.
+  if (cfg.colorBg != (cfg.colorBg & COLOR_MASK)) {
+    cfg.colorBg &= COLOR_MASK;
+    changed = true;
+  }
+
   return changed;
 }
 
@@ -119,6 +125,8 @@ void loadConfig(AppConfig &cfg) {
   cfg.colorRun = prefs.getULong("colorRun", COLOR_RUN_DEFAULT);
   cfg.colorUrgent = prefs.getULong("colorUrgent", COLOR_URGENT_DEFAULT);
   cfg.textThickness = prefs.getUChar("thickness", TEXT_THICKNESS_MIN);
+  cfg.bgEnabled = prefs.getBool("bgEnabled", false);
+  cfg.colorBg = prefs.getULong("colorBg", COLOR_BG_DEFAULT);
 
   prefs.end();
 
@@ -142,6 +150,8 @@ void saveConfig(const AppConfig &cfg) {
   prefs.putULong("colorRun", cfg.colorRun);
   prefs.putULong("colorUrgent", cfg.colorUrgent);
   prefs.putUChar("thickness", cfg.textThickness);
+  prefs.putBool("bgEnabled", cfg.bgEnabled);
+  prefs.putULong("colorBg", cfg.colorBg);
 
   prefs.end();
 }

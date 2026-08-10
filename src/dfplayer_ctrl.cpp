@@ -4,6 +4,7 @@
 #include <HardwareSerial.h>
 
 #include "config.h"
+#include "debug.h"
 #include "pins.h"
 
 namespace {
@@ -52,7 +53,7 @@ void dfInit() {
   // Notifikasi push (play finished) tetap kebaca.
   dfReady = dfPlayer.begin(dfSerial, /*isACK=*/false, /*doReset=*/true);
   if (!dfReady) {
-    Serial.println(F("[df] modul tidak merespon, audio dilewati"));
+    DBG_PRINTLN(F("[df] modul tidak merespon, audio dilewati"));
     return;
   }
 
@@ -95,7 +96,7 @@ void dfTick() {
     if (type == DFPlayerPlayFinished) {
       nowPlaying = DfNowPlaying::NONE;
     } else if (type == DFPlayerError) {
-      Serial.printf("[df] error %u\n", value);
+      DBG_PRINTF("[df] error %u\n", value);
     }
   }
 
