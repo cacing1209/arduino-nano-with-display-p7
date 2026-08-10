@@ -38,8 +38,20 @@
     background: #10141a; color: var(--text);
     border: 1px solid var(--line); border-radius: 7px;
   }
-  input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  select {
+    width: 100%; padding: 9px 10px; font-size: 15px; font-family: inherit;
+    background: #10141a; color: var(--text);
+    border: 1px solid var(--line); border-radius: 7px;
+  }
+  input[type=color] {
+    width: 100%; height: 38px; padding: 2px; cursor: pointer;
+    background: #10141a;
+    border: 1px solid var(--line); border-radius: 7px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .grid3 label { font-size: 12px; }
   .row { display: flex; align-items: center; gap: 12px; }
   .row + .row { margin-top: 14px; }
   .row label { margin: 0; flex: 1; }
@@ -69,7 +81,7 @@
   <section>
     <h2>Waktu countdown</h2>
     <label for="countdown">Durasi (MM:SS atau MM:SS:mmm)</label>
-    <input type="text" id="countdown" inputmode="numeric" placeholder="05:00">
+    <input type="text" id="countdown" inputmode="numeric" autocomplete="off" placeholder="05:00">
     <p class="hint" id="countdownHint"></p>
   </section>
 
@@ -88,6 +100,22 @@
       <input type="range" id="brightness" max="255">
       <span class="val" id="brightnessVal">0</span>
     </div>
+  </section>
+
+  <section>
+    <h2>Warna &amp; ketebalan angka</h2>
+    <div class="grid3">
+      <div><label for="colorIdle">Layar tunggu</label><input type="color" id="colorIdle"></div>
+      <div><label for="colorRun">Berjalan</label><input type="color" id="colorRun"></div>
+      <div><label for="colorUrgent">10 detik akhir</label><input type="color" id="colorUrgent"></div>
+    </div>
+    <p class="hint">Warna terlalu gelap dinaikin otomatis biar angka tetap kebaca.</p>
+    <label for="textThickness" style="margin-top:14px">Ketebalan angka</label>
+    <select id="textThickness">
+      <option value="1">Normal</option>
+      <option value="2">Tebal</option>
+      <option value="3">Ekstra tebal</option>
+    </select>
   </section>
 
   <section>
@@ -118,7 +146,8 @@ var limits = {};
 var els = {};
 ['countdown','marginTop','marginBottom','marginLeft','marginRight',
  'dfVolume','idleTrack','idleMusicEnabled','dfVolumeVal','msg','save',
- 'countdownHint','marginHint','brightness','brightnessVal']
+ 'countdownHint','marginHint','brightness','brightnessVal',
+ 'colorIdle','colorRun','colorUrgent','textThickness']
   .forEach(function (id) { els[id] = document.getElementById(id); });
 
 els.dfVolume.addEventListener('input', function () {
@@ -128,13 +157,54 @@ els.brightness.addEventListener('input', function () {
   els.brightnessVal.textContent = els.brightness.value;
 });
 
-// "MM:SS" atau "MM:SS:mmm" -> milidetik. null kalau formatnya nggak kebaca.
-function parseDuration(text) {
-  var m = /^\s*(\d{1,2}):([0-5]?\d)(?::(\d{1,3}))?\s*$/.exec(text);
-  if (!m) return null;
-  var ms = m[3] ? m[3].padEnd(3, '0') : '0';
-  return (+m[1]) * 60000 + (+m[2]) * 1000 + (+ms);
+// Keyboard numerik di HP nggak punya tombol ':', jadi begitu field dikosongin
+// user kejebak nggak bisa ngetik ulang formatnya. Solusinya: user cukup ngetik
+// angka (MMSSmmm), pemisahnya disisipin di sini.
+function onlyDigits(text) { return text.replace(/\D/g, ''); }
+
+function maskDuration(digits) {
+  var d = digits.slice(0, 7);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return d.slice(0, 2) + ':' + d.slice(2);
+  return d.slice(0, 2) + ':' + d.slice(2, 4) + ':' + d.slice(4);
 }
+
+// Isi field selalu hasil mask, jadi tiap digit posisinya sudah pasti: MMSSmmm.
+// Grup yang belum lengkap dianggap nol. null kalau field kosong.
+function fieldToMs() {
+  var d = onlyDigits(els.countdown.value);
+  if (!d) return null;
+
+  var mm = +d.slice(0, 2).padEnd(2, '0');
+  // Field bisa nampung "99" di posisi detik, mask nggak bisa nolak per-digit.
+  var ss = Math.min(59, +d.slice(2, 4).padEnd(2, '0'));
+  var mmm = d.length > 4 ? +d.slice(4).padEnd(3, '0') : 0;
+  return mm * 60000 + ss * 1000 + mmm;
+}
+
+// Reformat sambil ngetik tanpa bikin caret loncat ke ujung: posisi caret
+// disimpan sebagai "digit ke-berapa", terus dipetakan balik ke teks bermask.
+els.countdown.addEventListener('input', function () {
+  var el = els.countdown;
+  var digitsBefore = onlyDigits(el.value.slice(0, el.selectionStart)).length;
+  var masked = maskDuration(onlyDigits(el.value));
+  el.value = masked;
+
+  var pos = 0;
+  var seen = 0;
+  while (pos < masked.length && seen < digitsBefore) {
+    if (/\d/.test(masked[pos])) seen++;
+    pos++;
+  }
+  el.setSelectionRange(pos, pos);
+});
+
+// Rapikan grup yang belum lengkap begitu selesai ngetik. Field kosong dibiarin
+// kosong biar user bisa clear lalu ketik ulang tanpa dilawan.
+els.countdown.addEventListener('blur', function () {
+  var ms = fieldToMs();
+  if (ms !== null) els.countdown.value = formatDuration(ms);
+});
 
 function formatDuration(ms) {
   var mm = Math.floor(ms / 60000);
@@ -143,6 +213,10 @@ function formatDuration(ms) {
   var base = String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0');
   return mmm ? base + ':' + String(mmm).padStart(3, '0') : base;
 }
+
+// Config nyimpen warna sebagai angka 0xRRGGBB, <input type=color> maunya string.
+function toHex(n) { return '#' + (n & 0xffffff).toString(16).padStart(6, '0'); }
+function fromHex(el) { return parseInt(el.value.slice(1), 16) || 0; }
 
 function apply(cfg) {
   limits = cfg;
@@ -159,9 +233,14 @@ function apply(cfg) {
   els.brightness.min = cfg.brightnessMin;
   els.brightness.value = cfg.brightness;
   els.brightnessVal.textContent = cfg.brightness;
+  els.colorIdle.value = toHex(cfg.colorIdle);
+  els.colorRun.value = toHex(cfg.colorRun);
+  els.colorUrgent.value = toHex(cfg.colorUrgent);
+  els.textThickness.value = String(cfg.textThickness);
 
   els.countdownHint.textContent =
-    'Rentang ' + formatDuration(cfg.countdownMinMs) + ' - ' + formatDuration(cfg.countdownMaxMs) + '.';
+    'Ketik angkanya aja, titik dua nyusul sendiri. Rentang ' +
+    formatDuration(cfg.countdownMinMs) + ' - ' + formatDuration(cfg.countdownMaxMs) + '.';
   els.marginHint.textContent =
     'Kiri+kanan maks ' + (cfg.panelWidth - cfg.minDrawWidth) +
     ' px, atas+bawah maks ' + (cfg.panelHeight - cfg.minDrawHeight) +
@@ -185,9 +264,10 @@ function load() {
 }
 
 els.save.addEventListener('click', function () {
-  var ms = parseDuration(els.countdown.value);
+  var ms = fieldToMs();
   if (ms === null) {
-    say('Format waktu salah. Contoh: 05:00 atau 05:00:250', 'err');
+    say('Waktu countdown masih kosong.', 'err');
+    els.countdown.focus();
     return;
   }
 
@@ -200,7 +280,11 @@ els.save.addEventListener('click', function () {
     dfVolume: num(els.dfVolume),
     idleTrack: num(els.idleTrack),
     idleMusicEnabled: els.idleMusicEnabled.checked,
-    brightness: num(els.brightness)
+    brightness: num(els.brightness),
+    colorIdle: fromHex(els.colorIdle),
+    colorRun: fromHex(els.colorRun),
+    colorUrgent: fromHex(els.colorUrgent),
+    textThickness: num(els.textThickness)
   };
 
   els.save.disabled = true;

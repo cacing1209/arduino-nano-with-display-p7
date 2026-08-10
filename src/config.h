@@ -12,6 +12,10 @@ struct AppConfig {
   uint8_t idleTrack;         // nomor track di folder /MP3
   bool idleMusicEnabled;
   uint8_t brightness;        // 0-255, dipetakan ke setBrightness8()
+  uint32_t colorIdle;        // 0xRRGGBB, angka di layar tunggu
+  uint32_t colorRun;         // 0xRRGGBB, countdown jalan
+  uint32_t colorUrgent;      // 0xRRGGBB, 10 detik terakhir
+  uint8_t textThickness;     // 1 = normal, 2 = tebal, 3 = ekstra tebal
 };
 
 extern AppConfig appConfig;
@@ -22,6 +26,18 @@ constexpr uint8_t DF_VOLUME_MAX = 30;
 constexpr uint8_t DF_TRACK_MIN = 1;
 // Lantai brightness biar display nggak bisa disetel gelap total lewat web.
 constexpr uint8_t BRIGHTNESS_MIN = 10;
+
+constexpr uint32_t COLOR_MASK = 0xFFFFFFUL;
+// Lantai warna, alasannya sama kayak BRIGHTNESS_MIN: angka nggak boleh bisa
+// disetel jadi hitam (alias hilang) lewat web.
+constexpr uint8_t COLOR_MIN_LEVEL = 32;
+
+constexpr uint8_t TEXT_THICKNESS_MIN = 1;
+constexpr uint8_t TEXT_THICKNESS_MAX = 3;
+
+constexpr uint32_t COLOR_IDLE_DEFAULT = 0x006E82UL;
+constexpr uint32_t COLOR_RUN_DEFAULT = 0xFFAA00UL;
+constexpr uint32_t COLOR_URGENT_DEFAULT = 0xFF1E00UL;
 
 // Password WPA2 = satu-satunya lapis auth halaman settings, ganti sebelum
 // dipakai di lapangan. Minimal 8 karakter.

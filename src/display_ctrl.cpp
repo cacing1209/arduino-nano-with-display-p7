@@ -23,12 +23,31 @@ constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b) {
   return static_cast<uint16_t>(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
 }
 
-constexpr uint16_t kColorIdle = rgb565(0, 110, 130);         // layar tunggu
-constexpr uint16_t kColorRun = rgb565(255, 170, 0);          // countdown jalan
-constexpr uint16_t kColorUrgent = rgb565(255, 30, 0);        // 10 detik terakhir
-constexpr uint16_t kColorMsAccent = rgb565(150, 150, 150);   // milidetik
+// Warna config disimpan 0xRRGGBB biar gampang bolak-balik ke <input type=color>.
+constexpr uint16_t rgb565From(uint32_t rgb) {
+  return rgb565(static_cast<uint8_t>(rgb >> 16), static_cast<uint8_t>(rgb >> 8),
+                static_cast<uint8_t>(rgb));
+}
+
+constexpr uint16_t kColorMsAccent = rgb565(150, 150, 150);  // milidetik, sengaja diredam
 
 constexpr uint32_t kUrgentThresholdMs = 10000;
+
+// Font classic cuma punya stroke 1 px dan nggak ada varian bold-nya. "Tebal"
+// dipalsuin dengan nge-print teks yang sama beberapa kali digeser 1 px, jadi
+// nggak perlu nambah font ke flash. Geseran tetap 1 px di semua text size:
+// yang dicari efek stroke lebih gemuk, bukan skala huruf.
+struct BoldOffset {
+  int16_t dx, dy;
+};
+constexpr BoldOffset kBoldOffsets[] = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
+
+constexpr uint8_t boldPasses(uint8_t thickness) {
+  return thickness >= 3 ? 4 : (thickness >= 2 ? 2 : 1);
+}
+// Smear-nya nambahin footprint teks, jadi ukur & posisi teks ikut nambah.
+constexpr int16_t boldExtraW(uint8_t thickness) { return thickness >= 2 ? 1 : 0; }
+constexpr int16_t boldExtraH(uint8_t thickness) { return thickness >= 3 ? 1 : 0; }
 
 // ~50 fps. Lebih cepat cuma bikin digit milidetik blur dan makan CPU.
 constexpr unsigned long kRenderIntervalMs = 20;
@@ -82,6 +101,8 @@ struct IdleSnapshot {
   bool valid = false;
   uint32_t countdownMs = 0;
   uint8_t marginTop = 0, marginBottom = 0, marginLeft = 0, marginRight = 0;
+  uint32_t colorIdle = 0;
+  uint8_t textThickness = 0;
 };
 IdleSnapshot lastIdle;
 
@@ -100,40 +121,50 @@ Box currentBox() {
   return b;
 }
 
-void drawOneLine(const Box &b, const char *text, uint8_t size, uint16_t color) {
+// Ukuran teks apa adanya sesuai ketebalan yang lagi kepakai. Semua perhitungan
+// layout lewat sini biar teks tebal nggak meleset dari tengah / kepotong clip.
+int16_t textW(size_t chars, uint8_t size) {
+  return textVisWidth(static_cast<uint8_t>(chars), size) + boldExtraW(appConfig.textThickness);
+}
+int16_t textH(uint8_t size) { return textHeight(size) + boldExtraH(appConfig.textThickness); }
+
+void drawText(int16_t x, int16_t y, const char *text, uint8_t size, uint16_t color) {
   matrix->setTextSize(size);
   matrix->setTextColor(color);
-  matrix->setCursor(b.x + (b.w - textVisWidth(strlen(text), size)) / 2,
-                    b.y + (b.h - textHeight(size)) / 2);
-  matrix->print(text);
+
+  const uint8_t passes = boldPasses(appConfig.textThickness);
+  for (uint8_t i = 0; i < passes; ++i) {
+    // print() majuin cursor, jadi tiap pass harus di-set ulang.
+    matrix->setCursor(x + kBoldOffsets[i].dx, y + kBoldOffsets[i].dy);
+    matrix->print(text);
+  }
+}
+
+void drawOneLine(const Box &b, const char *text, uint8_t size, uint16_t color) {
+  drawText(b.x + (b.w - textW(strlen(text), size)) / 2, b.y + (b.h - textH(size)) / 2, text, size,
+           color);
 }
 
 void drawTwoLine(const Box &b, const char *top, uint8_t topSize, uint16_t topColor,
                  const char *bottom, uint8_t bottomSize, uint16_t bottomColor, int16_t gap) {
-  const int16_t topH = textHeight(topSize);
-  const int16_t totalH = topH + gap + textHeight(bottomSize);
+  const int16_t topH = textH(topSize);
+  const int16_t totalH = topH + gap + textH(bottomSize);
   const int16_t y0 = b.y + (b.h - totalH) / 2;
 
-  matrix->setTextSize(topSize);
-  matrix->setTextColor(topColor);
-  matrix->setCursor(b.x + (b.w - textVisWidth(strlen(top), topSize)) / 2, y0);
-  matrix->print(top);
-
-  matrix->setTextSize(bottomSize);
-  matrix->setTextColor(bottomColor);
-  matrix->setCursor(b.x + (b.w - textVisWidth(strlen(bottom), bottomSize)) / 2, y0 + topH + gap);
-  matrix->print(bottom);
+  drawText(b.x + (b.w - textW(strlen(top), topSize)) / 2, y0, top, topSize, topColor);
+  drawText(b.x + (b.w - textW(strlen(bottom), bottomSize)) / 2, y0 + topH + gap, bottom, bottomSize,
+           bottomColor);
 }
 
 // Pilih layout terbesar yang masih muat di kotak, dari MM:SS gede 2 baris
 // sampai MM:SS aja. Kalau semua kesempitan, opsi terakhir kepotong clip box.
 void drawCountdownLayout(const Box &b, const char *mmss, const char *msPart, const char *full,
                          uint16_t color) {
-  if (b.w >= textVisWidth(5, 2) && b.h >= textHeight(2) + 3 + textHeight(1)) {
+  if (b.w >= textW(5, 2) && b.h >= textH(2) + 3 + textH(1)) {
     drawTwoLine(b, mmss, 2, color, msPart, 1, kColorMsAccent, 3);
-  } else if (b.w >= textVisWidth(9, 1) && b.h >= textHeight(1)) {
+  } else if (b.w >= textW(9, 1) && b.h >= textH(1)) {
     drawOneLine(b, full, 1, color);
-  } else if (b.w >= textVisWidth(5, 1) && b.h >= textHeight(1) * 2 + 1) {
+  } else if (b.w >= textW(5, 1) && b.h >= textH(1) * 2 + 1) {
     drawTwoLine(b, mmss, 1, color, msPart, 1, kColorMsAccent, 1);
   } else {
     drawOneLine(b, mmss, 1, color);
@@ -141,7 +172,7 @@ void drawCountdownLayout(const Box &b, const char *mmss, const char *msPart, con
 }
 
 uint16_t runningColor(uint32_t remainingMs) {
-  return remainingMs <= kUrgentThresholdMs ? kColorUrgent : kColorRun;
+  return rgb565From(remainingMs <= kUrgentThresholdMs ? appConfig.colorUrgent : appConfig.colorRun);
 }
 
 void formatTime(uint32_t ms, char *mmss, size_t mmssLen, char *msPart, size_t msPartLen,
@@ -207,11 +238,13 @@ void displayIdle() {
 
   if (lastIdle.valid && lastIdle.countdownMs == appConfig.countdownMs &&
       lastIdle.marginTop == appConfig.marginTop && lastIdle.marginBottom == appConfig.marginBottom &&
-      lastIdle.marginLeft == appConfig.marginLeft && lastIdle.marginRight == appConfig.marginRight) {
+      lastIdle.marginLeft == appConfig.marginLeft && lastIdle.marginRight == appConfig.marginRight &&
+      lastIdle.colorIdle == appConfig.colorIdle &&
+      lastIdle.textThickness == appConfig.textThickness) {
     return;
   }
 
-  renderFrame(appConfig.countdownMs, kColorIdle, /*bothBuffers=*/true);
+  renderFrame(appConfig.countdownMs, rgb565From(appConfig.colorIdle), /*bothBuffers=*/true);
 
   lastIdle.valid = true;
   lastIdle.countdownMs = appConfig.countdownMs;
@@ -219,6 +252,8 @@ void displayIdle() {
   lastIdle.marginBottom = appConfig.marginBottom;
   lastIdle.marginLeft = appConfig.marginLeft;
   lastIdle.marginRight = appConfig.marginRight;
+  lastIdle.colorIdle = appConfig.colorIdle;
+  lastIdle.textThickness = appConfig.textThickness;
 }
 
 void displayCountdown(uint32_t remainingMs) {

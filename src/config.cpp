@@ -24,6 +24,46 @@ bool clampMarginPair(uint8_t &a, uint8_t &b, uint16_t limit) {
   return true;
 }
 
+// Buang bit di luar 0xRRGGBB, lalu naikin warna yang terlalu gelap sampai kanal
+// paling terang menyentuh COLOR_MIN_LEVEL. Rasio antar kanal (alias hue-nya)
+// tetap kejaga, cuma dinaikin levelnya.
+bool clampColor(uint32_t &color) {
+  const uint32_t masked = color & COLOR_MASK;
+  const uint8_t r = static_cast<uint8_t>(masked >> 16);
+  const uint8_t g = static_cast<uint8_t>(masked >> 8);
+  const uint8_t b = static_cast<uint8_t>(masked);
+  const uint8_t peak = max(r, max(g, b));
+
+  uint32_t fixed;
+  if (peak == 0) {
+    // Hitam total nggak punya rasio buat dipertahanin, jadi dijadiin abu-abu.
+    fixed = (static_cast<uint32_t>(COLOR_MIN_LEVEL) << 16) |
+            (static_cast<uint32_t>(COLOR_MIN_LEVEL) << 8) | COLOR_MIN_LEVEL;
+  } else if (peak < COLOR_MIN_LEVEL) {
+    fixed = (static_cast<uint32_t>(r * COLOR_MIN_LEVEL / peak) << 16) |
+            (static_cast<uint32_t>(g * COLOR_MIN_LEVEL / peak) << 8) |
+            (b * COLOR_MIN_LEVEL / peak);
+  } else {
+    fixed = masked;
+  }
+
+  if (fixed == color) return false;
+  color = fixed;
+  return true;
+}
+
+bool clampU8(uint8_t &value, uint8_t min, uint8_t max) {
+  if (value < min) {
+    value = min;
+    return true;
+  }
+  if (value > max) {
+    value = max;
+    return true;
+  }
+  return false;
+}
+
 }  // namespace
 
 bool clampConfig(AppConfig &cfg) {
@@ -55,6 +95,11 @@ bool clampConfig(AppConfig &cfg) {
     changed = true;
   }
 
+  changed |= clampColor(cfg.colorIdle);
+  changed |= clampColor(cfg.colorRun);
+  changed |= clampColor(cfg.colorUrgent);
+  changed |= clampU8(cfg.textThickness, TEXT_THICKNESS_MIN, TEXT_THICKNESS_MAX);
+
   return changed;
 }
 
@@ -70,6 +115,10 @@ void loadConfig(AppConfig &cfg) {
   cfg.idleTrack = prefs.getUChar("idleTrack", 1);
   cfg.idleMusicEnabled = prefs.getBool("idleMusic", true);
   cfg.brightness = prefs.getUChar("brightness", 150);
+  cfg.colorIdle = prefs.getULong("colorIdle", COLOR_IDLE_DEFAULT);
+  cfg.colorRun = prefs.getULong("colorRun", COLOR_RUN_DEFAULT);
+  cfg.colorUrgent = prefs.getULong("colorUrgent", COLOR_URGENT_DEFAULT);
+  cfg.textThickness = prefs.getUChar("thickness", TEXT_THICKNESS_MIN);
 
   prefs.end();
 
@@ -89,6 +138,10 @@ void saveConfig(const AppConfig &cfg) {
   prefs.putUChar("idleTrack", cfg.idleTrack);
   prefs.putBool("idleMusic", cfg.idleMusicEnabled);
   prefs.putUChar("brightness", cfg.brightness);
+  prefs.putULong("colorIdle", cfg.colorIdle);
+  prefs.putULong("colorRun", cfg.colorRun);
+  prefs.putULong("colorUrgent", cfg.colorUrgent);
+  prefs.putUChar("thickness", cfg.textThickness);
 
   prefs.end();
 }

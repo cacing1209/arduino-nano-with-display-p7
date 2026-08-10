@@ -59,6 +59,10 @@ void fillConfigJson(JsonObject obj, const AppConfig &cfg) {
   obj["idleTrack"] = cfg.idleTrack;
   obj["idleMusicEnabled"] = cfg.idleMusicEnabled;
   obj["brightness"] = cfg.brightness;
+  obj["colorIdle"] = cfg.colorIdle;
+  obj["colorRun"] = cfg.colorRun;
+  obj["colorUrgent"] = cfg.colorUrgent;
+  obj["textThickness"] = cfg.textThickness;
 
   // Batas-batas ikut dikirim biar UI nggak perlu hardcode.
   obj["panelWidth"] = PANEL_RES_X;
@@ -69,6 +73,8 @@ void fillConfigJson(JsonObject obj, const AppConfig &cfg) {
   obj["countdownMaxMs"] = COUNTDOWN_MAX_MS;
   obj["volumeMax"] = DF_VOLUME_MAX;
   obj["brightnessMin"] = BRIGHTNESS_MIN;
+  obj["thicknessMin"] = TEXT_THICKNESS_MIN;
+  obj["thicknessMax"] = TEXT_THICKNESS_MAX;
 }
 
 String configJson(const AppConfig &cfg, const bool *clamped) {
@@ -101,6 +107,10 @@ void handleConfigPost(AsyncWebServerRequest *request, JsonVariant &json) {
   takeU8(src, "idleTrack", next.idleTrack);
   takeBool(src, "idleMusicEnabled", next.idleMusicEnabled);
   takeU8(src, "brightness", next.brightness);
+  takeU32(src, "colorIdle", next.colorIdle);
+  takeU32(src, "colorRun", next.colorRun);
+  takeU32(src, "colorUrgent", next.colorUrgent);
+  takeU8(src, "textThickness", next.textThickness);
 
   const bool clamped = clampConfig(next);
 
@@ -108,7 +118,8 @@ void handleConfigPost(AsyncWebServerRequest *request, JsonVariant &json) {
   const bool brightnessChanged = next.brightness != appConfig.brightness;
 
   // countdownMs baru nggak motong ronde yang lagi jalan, efektif ronde
-  // berikutnya. Margin & audio langsung kepakai.
+  // berikutnya. Margin, warna, ketebalan & audio langsung kepakai — renderer
+  // baca appConfig tiap frame, jadi nggak perlu apply eksplisit.
   appConfig = next;
   saveConfig(appConfig);
 
