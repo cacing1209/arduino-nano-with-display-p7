@@ -11,7 +11,8 @@ void displayInit();
 // Layar tunggu: durasi yang lagi ke-arm. Cuma redraw kalau config berubah.
 void displayIdle();
 
-// Countdown MM:SS:mmm. Aman dipanggil tiap loop(), throttle diurus di dalam.
+// Countdown MM:SS:cc (milidetik 2 digit alias perseratus detik). Aman dipanggil
+// tiap loop(), throttle diurus di dalam.
 void displayCountdown(uint32_t remainingMs);
 
 // Gambar frame terakhir ronde dan tahan selama DISPLAY_FINAL_HOLD_MS.

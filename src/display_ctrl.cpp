@@ -162,7 +162,7 @@ void drawCountdownLayout(const Box &b, const char *mmss, const char *msPart, con
                          uint16_t color) {
   if (b.w >= textW(5, 2) && b.h >= textH(2) + 3 + textH(1)) {
     drawTwoLine(b, mmss, 2, color, msPart, 1, kColorMsAccent, 3);
-  } else if (b.w >= textW(9, 1) && b.h >= textH(1)) {
+  } else if (b.w >= textW(8, 1) && b.h >= textH(1)) {  // "MM:SS:cc" = 8 karakter
     drawOneLine(b, full, 1, color);
   } else if (b.w >= textW(5, 1) && b.h >= textH(1) * 2 + 1) {
     drawTwoLine(b, mmss, 1, color, msPart, 1, kColorMsAccent, 1);
@@ -180,11 +180,13 @@ void formatTime(uint32_t ms, char *mmss, size_t mmssLen, char *msPart, size_t ms
   const uint32_t totalSec = ms / 1000;
   const unsigned long mm = totalSec / 60;
   const unsigned long ss = totalSec % 60;
-  const unsigned long mmm = ms % 1000;
+  // Milidetik dipotong (bukan dibulatin) ke 2 digit: dibulatin bisa nongol "100"
+  // dan bikin angka kelihatan nambah pas sisa waktu justru berkurang.
+  const unsigned long cs = (ms % 1000) / 10;
 
   snprintf(mmss, mmssLen, "%02lu:%02lu", mm, ss);
-  snprintf(msPart, msPartLen, "%03lu", mmm);
-  snprintf(full, fullLen, "%02lu:%02lu:%03lu", mm, ss, mmm);
+  snprintf(msPart, msPartLen, "%02lu", cs);
+  snprintf(full, fullLen, "%02lu:%02lu:%02lu", mm, ss, cs);
 }
 
 // bothBuffers=true buat frame diam (idle / freeze): kalau cuma satu buffer yang

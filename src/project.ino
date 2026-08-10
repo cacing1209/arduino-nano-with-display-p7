@@ -14,8 +14,9 @@
 namespace
 {
 
-  // Beep tiap detik selama sisa waktu di bawah ambang ini.
-  constexpr uint32_t kBuzzLastSeconds = 3;
+  // Beep tiap detik selama sisa waktu di bawah ambang ini. Disamain sama ambang
+  // warna urgent di display_ctrl.cpp, jadi buzzer mulai bunyi pas angka merah.
+  constexpr uint32_t kBuzzLastSeconds = 10;
 
   // Detik yang terakhir dibunyiin, biar satu detik cuma dapat satu beep.
   uint32_t lastBeepSec = 0;
