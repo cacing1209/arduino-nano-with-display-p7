@@ -36,7 +36,6 @@ namespace
 
 void setup()
 {
-  // Harus sama dengan monitor_speed di platformio.ini.
   Serial.begin(115200);
   delay(1000);
   Serial.println("SYSTEM BEGIN");
@@ -78,7 +77,9 @@ void loop()
       // Stop paksa: sisa waktu dibekuin biar kelihatan berhenti di angka berapa.
       displayFreezeFinal(runtime.remainingMs);
       timerStop();
-      dfPlayVoice(DF_VOICE_GAME_OVER);
+      // Voice 003 dinonaktifkan: stop sebelum waktu habis sengaja nggak ada
+      // voice, cuma buzzer. Hapus '//' di baris bawah kalau mau dipakai lagi.
+      // dfPlayVoice(DF_VOICE_GAME_OVER);
       buzzerPlay(BuzzPattern::GAME_OVER);
       dfPlayIdleLoop();
     }
