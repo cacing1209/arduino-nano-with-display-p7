@@ -9,9 +9,8 @@ struct BuzzStep {
   uint16_t durMs;
 };
 
-// Buzzer aktif: cuma digital on/off, nadanya dari oscillator buzzer sendiri.
-// Driver S8050 NPN = base ketarik HIGH bikin transistor nyala, jadi aktif HIGH.
-// Kalau modul buzzer lu ternyata aktif LOW, tinggal balik dua konstanta ini.
+// Driver S8050 NPN: base HIGH bikin transistor nyala, jadi aktif HIGH. Kalau
+// modul buzzer-nya ternyata aktif LOW, tinggal balik dua konstanta ini.
 constexpr uint8_t kBuzzOn = HIGH;
 constexpr uint8_t kBuzzOff = LOW;
 

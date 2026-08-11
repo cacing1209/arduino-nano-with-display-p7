@@ -67,9 +67,8 @@ void fillConfigJson(JsonObject obj, const AppConfig &cfg) {
   obj["bgEnabled"] = cfg.bgEnabled;
   obj["colorBg"] = cfg.colorBg;
 
-  // Batas-batas ikut dikirim biar UI nggak perlu hardcode.
-  // Batas margin dikirim sudah jadi, bukan lebar panel mentah: offset perataan
-  // panel ikut kepotong di sini, biar UI nggak perlu tahu soal itu.
+  // Batas-batas ikut dikirim biar UI nggak perlu hardcode. Batas margin sudah
+  // dipotong offset perataan panel, jadi UI nggak perlu tahu soal itu.
   obj["marginMaxX"] = MARGIN_MAX_X;
   obj["marginMaxY"] = MARGIN_MAX_Y;
   obj["countdownMinMs"] = COUNTDOWN_MIN_MS;
@@ -122,9 +121,9 @@ void handleConfigPost(AsyncWebServerRequest *request, JsonVariant &json) {
   const bool volumeChanged = next.dfVolume != appConfig.dfVolume;
   const bool brightnessChanged = next.brightness != appConfig.brightness;
 
-  // countdownMs baru nggak motong ronde yang lagi jalan, efektif ronde
-  // berikutnya. Margin, warna, ketebalan & audio langsung kepakai — renderer
-  // baca appConfig tiap frame, jadi nggak perlu apply eksplisit.
+  // countdownMs baru efektif ronde berikutnya, nggak motong yang lagi jalan.
+  // Margin, warna & ketebalan langsung kepakai karena renderer baca appConfig
+  // tiap frame.
   appConfig = next;
   saveConfig(appConfig);
 

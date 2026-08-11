@@ -12,8 +12,8 @@ constexpr char kPrefsNamespace[] = "p5cfg";
 
 Preferences prefs;
 
-// Kalau total margin lewat `limit`, kecilin dua-duanya proporsional biar rasio
-// yang diminta user tetap kejaga.
+// Kalau total margin lewat `limit`, dua-duanya dikecilin proporsional biar
+// rasio yang diminta user tetap kejaga.
 bool clampMarginPair(uint8_t &a, uint8_t &b, uint16_t limit) {
   const uint16_t total = static_cast<uint16_t>(a) + static_cast<uint16_t>(b);
   if (total <= limit) return false;
@@ -24,9 +24,8 @@ bool clampMarginPair(uint8_t &a, uint8_t &b, uint16_t limit) {
   return true;
 }
 
-// Buang bit di luar 0xRRGGBB, lalu naikin warna yang terlalu gelap sampai kanal
-// paling terang menyentuh COLOR_MIN_LEVEL. Rasio antar kanal (alias hue-nya)
-// tetap kejaga, cuma dinaikin levelnya.
+// Warna yang terlalu gelap dinaikin sampai kanal paling terang nyentuh
+// COLOR_MIN_LEVEL. Rasio antar kanal (hue-nya) tetap kejaga.
 bool clampColor(uint32_t &color) {
   const uint32_t masked = color & COLOR_MASK;
   const uint8_t r = static_cast<uint8_t>(masked >> 16);
@@ -36,7 +35,7 @@ bool clampColor(uint32_t &color) {
 
   uint32_t fixed;
   if (peak == 0) {
-    // Hitam total nggak punya rasio buat dipertahanin, jadi dijadiin abu-abu.
+    // Hitam total nggak punya rasio buat dijaga, jadi dijadiin abu-abu.
     fixed = (static_cast<uint32_t>(COLOR_MIN_LEVEL) << 16) |
             (static_cast<uint32_t>(COLOR_MIN_LEVEL) << 8) | COLOR_MIN_LEVEL;
   } else if (peak < COLOR_MIN_LEVEL) {
@@ -69,9 +68,8 @@ bool clampU8(uint8_t &value, uint8_t min, uint8_t max) {
 bool clampConfig(AppConfig &cfg) {
   bool changed = false;
 
-  // Layar cuma nampilin MM:SS, jadi pecahan detik dibuang: sisa 50 ms dari
-  // setting versi lama bikin layar tunggu nampilin satu detik lebih banyak dari
-  // yang di-set (detik dibulatkan ke atas pas digambar).
+  // Pecahan detik dibuang: karena digambar dibulatin ke atas, sisa 50 ms bikin
+  // layar tunggu nampilin satu detik lebih banyak dari yang di-set.
   if (cfg.countdownMs % 1000 != 0) {
     cfg.countdownMs -= cfg.countdownMs % 1000;
     changed = true;
@@ -108,7 +106,7 @@ bool clampConfig(AppConfig &cfg) {
   changed |= clampColor(cfg.colorUrgent);
   changed |= clampU8(cfg.textThickness, TEXT_THICKNESS_MIN, TEXT_THICKNESS_MAX);
 
-  // Background cuma dipotong ke 24 bit, tanpa lantai: hitam nilai yang sah.
+  // Background tanpa lantai warna: hitam itu nilai yang sah.
   if (cfg.colorBg != (cfg.colorBg & COLOR_MASK)) {
     cfg.colorBg &= COLOR_MASK;
     changed = true;

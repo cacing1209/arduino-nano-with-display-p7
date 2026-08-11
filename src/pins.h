@@ -13,9 +13,9 @@ constexpr uint8_t PIN_HUB75_A = 5;
 constexpr uint8_t PIN_HUB75_B = 18;
 constexpr uint8_t PIN_HUB75_C = 19;
 constexpr uint8_t PIN_HUB75_D = 21;
-// GPIO12 = strapping pin MTDI, nggak boleh ketarik HIGH pas boot (ESP32 gagal
-// boot, flash voltage ke-set 1.8V). Scan 1/16 nggak pakai jalur E, tapi library
-// tetap ngedrive pin-nya, jadi kasih pulldown 10K di jalur ini.
+// GPIO12 = strapping pin MTDI, HIGH pas boot bikin ESP32 gagal boot. Scan 1/16
+// nggak pakai jalur E tapi library tetap ngedrive pin-nya, jadi jalur ini
+// wajib dikasih pulldown 10K.
 constexpr uint8_t PIN_HUB75_E = 12;
 constexpr uint8_t PIN_HUB75_LAT = 26;
 constexpr uint8_t PIN_HUB75_OE = 25;
@@ -36,10 +36,9 @@ constexpr uint16_t PANEL_RES_X = 64;
 constexpr uint16_t PANEL_RES_Y = 32;
 constexpr uint8_t PANEL_CHAIN = 1;
 
-// Titik tengah panel ini meleset ke kanan: dicoba langsung di panelnya, angka
-// baru kelihatan pas di tengah kalau area gambar mulai dari x=2. Offset ini
-// dipakai sebelum margin dari web, jadi margin 0 = sudah pas tengah dan user
-// nggak perlu nambal pakai margin kiri 2.
+// Titik tengah panel ini meleset ke kanan: dicoba di panelnya, angka baru pas
+// di tengah kalau area gambar mulai dari x=2. Dipakai sebelum margin dari web,
+// jadi margin 0 sudah pas tengah.
 constexpr uint8_t PANEL_X_OFFSET = 2;
 
 // Sisa area gambar minimal setelah offset + margin.

@@ -12,22 +12,21 @@ void triggerInit()
   runtime.btnStableReading = HIGH;
   runtime.btnLastDebounceMs = millis();
 
-  // Idle harus kebaca 1 (ketarik pullup internal). Kalau di sini sudah 0,
-  // berarti tombol nyangkut ke gnd atau kabelnya salah pin, bukan soal debounce.
+  // Kalau di sini sudah 0, tombol nyangkut ke gnd atau kabelnya salah pin,
+  // bukan soal debounce.
   DBG_PRINTF("[btn] GPIO%u level awal=%d (harusnya 1)\n", PIN_TRIGGER_BTN,
              digitalRead(PIN_TRIGGER_BTN));
 }
 
 bool triggerPressed()
 {
-  // Tombol aktif LOW, jadi level HIGH = lepas. Nilai mentahnya yang disimpan di
-  // runtime supaya sama dengan nilai awal HIGH yang diset triggerInit().
+  // Tombol aktif LOW, jadi level HIGH = lepas.
   const bool level = (digitalRead(PIN_TRIGGER_BTN) == HIGH);
 
   if (level != runtime.btnLastReading)
   {
-    // Cuma di-print pas ada perubahan. Kalau tiap loop, serial kebanjiran
-    // sampai nggak kebaca dan malah ikut ganggu timing.
+    // Cuma pas berubah: kalau tiap loop, serial kebanjiran dan malah ganggu
+    // timing.
     DBG_PRINTF("[btn] level=%d\n", level);
     runtime.btnLastReading = level;
     runtime.btnLastDebounceMs = millis();

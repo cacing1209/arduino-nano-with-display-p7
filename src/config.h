@@ -31,22 +31,22 @@ constexpr uint8_t BRIGHTNESS_MIN = 10;
 
 constexpr uint32_t COLOR_MASK = 0xFFFFFFUL;
 // Lantai warna, alasannya sama kayak BRIGHTNESS_MIN: angka nggak boleh bisa
-// disetel jadi hitam (alias hilang) lewat web.
+// dibikin hitam (alias hilang) lewat web.
 constexpr uint8_t COLOR_MIN_LEVEL = 32;
 
 constexpr uint8_t TEXT_THICKNESS_MIN = 1;
 constexpr uint8_t TEXT_THICKNESS_MAX = 3;
 
-// Background sengaja nggak kena COLOR_MIN_LEVEL: hitam itu tampilan default
-// yang bener buat panel LED, bukan kesalahan setting kayak teks hitam.
+// Sengaja nggak kena COLOR_MIN_LEVEL: hitam itu default yang bener buat panel
+// LED, bukan salah setting kayak teks hitam.
 constexpr uint32_t COLOR_BG_DEFAULT = 0x000000UL;
 
 constexpr uint32_t COLOR_IDLE_DEFAULT = 0x006E82UL;
 constexpr uint32_t COLOR_RUN_DEFAULT = 0xFFAA00UL;
 constexpr uint32_t COLOR_URGENT_DEFAULT = 0xFF1E00UL;
 
-// Password WPA2 = satu-satunya lapis auth halaman settings, ganti sebelum
-// dipakai di lapangan. Minimal 8 karakter.
+// Password WPA2 = satu-satunya auth halaman settings, minimal 8 karakter.
+// Ganti sebelum dipakai di lapangan.
 constexpr char AP_SSID[] = "P5-TIMER";
 constexpr char AP_PASSWORD[] = "@Quantum2022";
 

@@ -9,8 +9,8 @@
 
 namespace {
 
-// Font bawaan Adafruit_GFX (classic 5x7). Advance sudah termasuk spasi `size`
-// px antar karakter, jadi lebar yang kelihatan = chars*6*size - size.
+// Font classic 5x7 Adafruit_GFX. Advance sudah termasuk spasi `size` px antar
+// karakter, jadi lebar yang kelihatan = chars*6*size - size.
 constexpr int16_t kCharAdvance = 6;
 constexpr int16_t kGlyphHeight = 7;
 
@@ -31,11 +31,9 @@ constexpr uint16_t rgb565From(uint32_t rgb) {
 
 constexpr uint32_t kUrgentThresholdMs = 10000;
 
-// Cuma kepakai di jalur fallback font classic (lihat drawCountdownLayout): font
-// classic stroke-nya 1 px dan nggak ada varian bold-nya. "Tebal" dipalsuin
-// dengan nge-print teks yang sama beberapa kali digeser 1 px, jadi
-// nggak perlu nambah font ke flash. Geseran tetap 1 px di semua text size:
-// yang dicari efek stroke lebih gemuk, bukan skala huruf.
+// Cuma buat jalur fallback font classic (lihat drawCountdownLayout): font-nya
+// nggak punya varian bold, jadi "tebal" dipalsuin dengan nge-print teks yang
+// sama beberapa kali digeser 1 px.
 struct BoldOffset {
   int16_t dx, dy;
 };
@@ -44,12 +42,12 @@ constexpr BoldOffset kBoldOffsets[] = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
 constexpr uint8_t boldPasses(uint8_t thickness) {
   return thickness >= 3 ? 4 : (thickness >= 2 ? 2 : 1);
 }
-// Smear-nya nambahin footprint teks, jadi ukur & posisi teks ikut nambah.
+// Smear nambahin footprint teks, jadi ukuran & posisi ikut nambah.
 constexpr int16_t boldExtraW(uint8_t thickness) { return thickness >= 2 ? 1 : 0; }
 constexpr int16_t boldExtraH(uint8_t thickness) { return thickness >= 3 ? 1 : 0; }
 
-// ~20 fps. Yang berubah cuma digit detik, jadi lebih cepat nggak nambah apa-apa
-// selain beban CPU. Masih cukup rapat biar digit ganti bareng beep buzzer.
+// ~20 fps. Yang berubah cuma digit detik, jadi lebih cepat cuma nambah beban
+// CPU; segini masih cukup rapat biar digit ganti bareng beep buzzer.
 constexpr unsigned long kRenderIntervalMs = 50;
 
 // Kotak area gambar setelah margin diterapkan.
@@ -62,7 +60,7 @@ struct Box {
 class ClippedMatrix : public MatrixPanel_I2S_DMA {
  public:
   using MatrixPanel_I2S_DMA::MatrixPanel_I2S_DMA;
-  // Biar overload RGB888 dari base nggak ketutup sama override di bawah.
+  // Biar overload RGB888 dari base nggak ketutup override di bawah.
   using MatrixPanel_I2S_DMA::drawPixel;
   using MatrixPanel_I2S_DMA::fillRect;
 
@@ -96,7 +94,7 @@ class ClippedMatrix : public MatrixPanel_I2S_DMA {
 
 ClippedMatrix *matrix = nullptr;
 
-// Cache layar idle, dipakai buat nentuin perlu redraw atau nggak.
+// Cache layar idle, buat nentuin perlu redraw atau nggak.
 struct IdleSnapshot {
   bool valid = false;
   uint32_t countdownMs = 0;
@@ -124,8 +122,8 @@ Box currentBox() {
   return b;
 }
 
-// Ukuran teks apa adanya sesuai ketebalan yang lagi kepakai. Semua perhitungan
-// layout lewat sini biar teks tebal nggak meleset dari tengah / kepotong clip.
+// Semua hitungan layout lewat sini biar teks tebal nggak meleset dari tengah
+// atau kepotong clip.
 int16_t textW(size_t chars, uint8_t size) {
   return textVisWidth(static_cast<uint8_t>(chars), size) + boldExtraW(appConfig.textThickness);
 }
@@ -149,13 +147,10 @@ void drawOneLine(const Box &b, const char *text, uint8_t size, uint16_t color) {
 }
 
 // --- Angka 7-segment ---
-// Font classic (dan font bitmap apa pun) kalah di dua sisi: ditinggiin sampai 32
-// px lewat text size, lebar "MM:SS" jadi 87 px padahal panelnya 64; mau pakai
-// font proporsional yang tinggi, tabelnya makan flash dan lebarnya tetap ~17 px
-// per angka. Digit 7-segment digambar dari rect, jadi lebar dan tinggi bisa
-// disetel lepas satu sama lain: 13x32 px per angka pas ngisi panel, tanpa data
-// font sama sekali. Bonusnya, "ketebalan" di web jadi tebal segmen beneran,
-// bukan smear 1 px kayak di font classic.
+// Font bitmap nggak kepakai di sini: ditinggiin sampai 32 px, "MM:SS" jadi 87
+// px padahal panelnya cuma 64. Digit dari rect bisa disetel lebar dan tingginya
+// lepas satu sama lain (13x32 px per angka), dan "ketebalan" di web jadi tebal
+// segmen beneran.
 
 // bit0..bit6 = segmen A..G. A=atas, B=kanan atas, C=kanan bawah, D=bawah,
 // E=kiri bawah, F=kiri atas, G=tengah.
@@ -185,8 +180,8 @@ struct SegLayout {
   int16_t totalW;  // lebar "MM:SS" utuh, buat nengahin
 };
 
-// Titik dua sengaja lebih sempit dari tebal segmen: di lebar segini, tiap px
-// yang nggak kepakai titik dua langsung nambah lebar keempat angkanya.
+// Sengaja lebih sempit dari tebal segmen: tiap px yang nggak kepakai titik dua
+// langsung nambah lebar keempat angkanya.
 constexpr int16_t segColonW(int16_t t) { return t > 4 ? t - 2 : kSegColonMinW; }
 
 // "MM:SS" = 4 angka + 1 titik dua + 4 celah.
@@ -206,11 +201,9 @@ bool segFits(const Box &b, int16_t t, int16_t gap, int16_t colonW, SegLayout &ou
   return true;
 }
 
-// Tinggi angka = tinggi kotak gambar, jadi tebal segmen yang diincer diturunkan
-// dari tinggi itu. Kalau nggak muat, yang dikorbanin berurutan: celah antar
-// angka, lalu lebar titik dua, baru terakhir tebal segmennya — tebal yang
-// diminta user dipertahanin selama masih mungkin. false = kotaknya kekecilan
-// buat 7-segment.
+// Kalau nggak muat, yang dikorbanin berurutan: celah antar angka, lebar titik
+// dua, baru tebal segmen — tebal pilihan user dipertahanin selama masih bisa.
+// false = kotaknya kekecilan buat 7-segment.
 bool segLayout(const Box &b, uint8_t thickness, SegLayout &out) {
   const int16_t want = static_cast<int16_t>(b.h / 7 + thickness - 1);
   for (int16_t t = want; t >= kSegMinThickness; --t) {
@@ -239,8 +232,7 @@ void drawSegDigit(int16_t x, int16_t y, const SegLayout &L, uint8_t digit, uint1
   if (mask & 0x40) matrix->fillRect(x, yMid, L.dw, L.t, color);            // G
 }
 
-// Dua kotak, ditaruh di 1/4 dan 3/4 tinggi angka biar sejajar sama celah antar
-// batang.
+// Dua kotak di 1/4 dan 3/4 tinggi angka, sejajar celah antar batang.
 void drawSegColon(int16_t x, int16_t y, const SegLayout &L, uint16_t color) {
   matrix->fillRect(x, y + L.dh / 4 - L.colonW / 2, L.colonW, L.colonW, color);
   matrix->fillRect(x, y + (3 * L.dh) / 4 - L.colonW / 2, L.colonW, L.colonW, color);
@@ -268,9 +260,8 @@ void drawCountdownLayout(const Box &b, const char *mmss, uint16_t color) {
     return;
   }
 
-  // Margin-nya ekstrem sampai 7-segment nggak kebentuk lagi; font classic masih
-  // kebaca di kotak sekecil itu. Opsi terakhir kepotong clip box — sengaja,
-  // biar tetap kelihatan ada angka daripada layar kosong.
+  // Margin ekstrem, 7-segment nggak kebentuk lagi. Kalau font classic pun
+  // kepotong clip box, biarin — masih lebih baik daripada layar kosong.
   const uint8_t size = (b.w >= textW(5, 2) && b.h >= textH(2)) ? 2 : 1;
   drawOneLine(b, mmss, size, color);
 }
@@ -279,11 +270,8 @@ uint16_t runningColor(uint32_t remainingMs) {
   return rgb565From(remainingMs <= kUrgentThresholdMs ? appConfig.colorUrgent : appConfig.colorRun);
 }
 
-// Detik dibulatkan ke ATAS. Tanpa digit milidetik, motong ke bawah bikin dua
-// masalah: angka awal (misal 05:00) cuma nongol sekejap, dan detik terakhir
-// nampilin 00:00 selama sedetik penuh padahal waktunya belum habis. Dengan
-// dibulatin ke atas, tiap angka kelihatan sedetik penuh dan 00:00 cuma muncul
-// pas waktunya benar-benar nol.
+// Detik dibulatkan ke ATAS: kalau dipotong ke bawah, angka awal (misal 05:00)
+// cuma nongol sekejap dan 00:00 nongol sedetik penuh sebelum waktunya habis.
 void formatTime(uint32_t ms, char *mmss, size_t mmssLen) {
   const uint32_t totalSec = (ms + 999) / 1000;
   const unsigned long mm = totalSec / 60;
@@ -292,14 +280,14 @@ void formatTime(uint32_t ms, char *mmss, size_t mmssLen) {
   snprintf(mmss, mmssLen, "%02lu:%02lu", mm, ss);
 }
 
-// Background cuma ngisi area gambar, bukan sepanjang panel: bagian margin tetap
-// hitam supaya tetap kelihatan sebagai bezel, bukan bingkai warna.
+// Cuma ngisi area gambar: margin tetap hitam biar kelihatan sebagai bezel,
+// bukan bingkai warna.
 void drawBackground(const Box &b) {
   if (!appConfig.bgEnabled) return;
   matrix->fillRect(b.x, b.y, b.w, b.h, rgb565From(appConfig.colorBg));
 }
 
-// bothBuffers=true buat frame diam (idle / freeze): kalau cuma satu buffer yang
+// bothBuffers=true buat frame diam (idle / freeze): kalau cuma satu buffer
 // keisi, layar balik ke frame lama begitu ada flip berikutnya.
 void renderFrame(uint32_t ms, uint16_t color, bool bothBuffers) {
   char mmss[8];
@@ -330,7 +318,7 @@ void displayInit() {
 
   HUB75_I2S_CFG mxconfig(PANEL_RES_X, PANEL_RES_Y, PANEL_CHAIN, pins);
   mxconfig.driver = HUB75_I2S_CFG::FM6126A;
-  mxconfig.double_buff = true;  // countdown redraw penuh tiap frame, tanpa ini kedip
+  mxconfig.double_buff = true;  // redraw penuh tiap frame, tanpa ini kedip
 
   matrix = new ClippedMatrix(mxconfig);
   matrix->begin();
@@ -380,7 +368,7 @@ void displayCountdown(uint32_t remainingMs) {
   lastRenderMs = millis();
 
   lastIdle.valid = false;   // paksa idle digambar ulang pas balik ke IDLE
-  finalHoldActive = false;  // ronde baru jalan, sisa hold ronde lalu dibatalin
+  finalHoldActive = false;  // ronde baru jalan, hold ronde lalu dibatalin
 
   renderFrame(remainingMs, runningColor(remainingMs), /*bothBuffers=*/false);
 }

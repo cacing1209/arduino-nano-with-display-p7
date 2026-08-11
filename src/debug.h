@@ -2,20 +2,17 @@
 
 #include <Arduino.h>
 
-// Saklar log serial. Komentarin baris di bawah (kasih '//') buat build
-// produksi: semua DBG_* jadi no-op, string literalnya nggak ikut kekompilasi
-// ke flash, dan UART debug nggak diinisialisasi sama sekali.
-//
-// Bisa juga dimatiin tanpa nyentuh file ini lewat platformio.ini:
+// Saklar log serial. Buat build produksi, matiin lewat platformio.ini:
 //   build_flags = -DDEBUG_SYS_OFF
+// Semua DBG_* jadi no-op dan string literalnya nggak ikut ke flash.
 #ifndef DEBUG_SYS_OFF
 #define DEBUG_SYS
 #endif
 
 #ifdef DEBUG_SYS
 
-// delay-nya biar serial monitor sempat nyambung sebelum baris log pertama
-// keluar; tanpa itu "SYSTEM BEGIN" sering kepotong.
+// delay-nya biar serial monitor sempat nyambung; tanpa itu baris log pertama
+// sering kepotong.
 #define DBG_BEGIN(baud)   \
   do {                    \
     Serial.begin(baud);   \
@@ -28,8 +25,8 @@
 
 #else
 
-// Argumennya sengaja nggak dievaluasi: semua pemanggil DBG_* di project ini
-// cuma baca nilai, nggak ada yang punya efek samping.
+// Argumen sengaja nggak dievaluasi: semua pemanggil DBG_* cuma baca nilai,
+// nggak ada efek samping.
 #define DBG_BEGIN(baud) ((void)0)
 #define DBG_PRINT(...) ((void)0)
 #define DBG_PRINTLN(...) ((void)0)
