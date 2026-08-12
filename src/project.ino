@@ -83,8 +83,8 @@ void loop()
     {
       displayFreezeFinal(0);
       timerStop();
-      // dfPlayVoice(DF_VOICE_TIME_UP);
-      buzzerPlay(BuzzPattern::TIME_UP);
+      dfPlayVoice(DF_VOICE_TIME_UP);
+      // buzzerPlay(BuzzPattern::TIME_UP);
       dfPlayIdleLoop();
     }
     else
