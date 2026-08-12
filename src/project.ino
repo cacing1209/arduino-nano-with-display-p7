@@ -63,8 +63,6 @@ void loop()
       dfPlayVoice(DF_VOICE_START);
       buzzerPlay(BuzzPattern::START);
       timerStart(appConfig.countdownMs);
-      // Reset di sini biar durasi yang lebih pendek dari ambang beep tetap
-      // kebunyiin dari detik pertama.
       lastBeepSec = 0;
     }
     break;
@@ -74,7 +72,6 @@ void loop()
     {
       displayFreezeFinal(runtime.remainingMs);
       timerStop();
-      // Sengaja tanpa voice, cuma buzzer (lihat DF_VOICE_GAME_OVER).
       buzzerPlay(BuzzPattern::GAME_OVER);
       dfPlayIdleLoop();
     }

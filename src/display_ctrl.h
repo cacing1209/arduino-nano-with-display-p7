@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-constexpr unsigned long DISPLAY_FINAL_HOLD_MS = 5000;
+constexpr unsigned long DISPLAY_FINAL_HOLD_MS = 10000;
 
 void displayInit();
 
