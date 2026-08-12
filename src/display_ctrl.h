@@ -2,9 +2,7 @@
 
 #include <Arduino.h>
 
-// Lama frame terakhir ditahan sebelum balik ke layar tunggu. Tanpa ini angka
-// terakhir nggak sempat kelihatan karena state langsung pindah ke IDLE.
-constexpr unsigned long DISPLAY_FINAL_HOLD_MS = 3000;
+constexpr unsigned long DISPLAY_FINAL_HOLD_MS = 5000;
 
 void displayInit();
 

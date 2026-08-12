@@ -72,7 +72,6 @@ void loop()
   case TimerState::RUNNING:
     if (trigger)
     {
-      // Stop paksa: sisa waktu dibekuin biar kelihatan berhenti di angka berapa.
       displayFreezeFinal(runtime.remainingMs);
       timerStop();
       // Sengaja tanpa voice, cuma buzzer (lihat DF_VOICE_GAME_OVER).
