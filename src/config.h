@@ -47,8 +47,12 @@ constexpr uint32_t COLOR_URGENT_DEFAULT = 0xFF1E00UL;
 
 // Password WPA2 = satu-satunya auth halaman settings, minimal 8 karakter.
 // Ganti sebelum dipakai di lapangan.
-constexpr char AP_SSID[] = "P5-TIMER";
+constexpr char AP_SSID_PREFIX[] = "P5-TIMER";
 constexpr char AP_PASSWORD[] = "@Quantum2022";
+
+// SSID lengkap = prefix + ID chip, biar beberapa unit di satu lokasi nggak
+// tabrakan. Isinya sama tiap boot, jadi aman dipakai jadi nama tetap.
+const char *apSsid();
 
 void loadConfig(AppConfig &cfg);
 void saveConfig(const AppConfig &cfg);

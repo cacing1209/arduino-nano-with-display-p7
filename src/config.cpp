@@ -65,6 +65,19 @@ bool clampU8(uint8_t &value, uint8_t min, uint8_t max) {
 
 }  // namespace
 
+const char *apSsid() {
+  // Dibangun sekali lalu di-cache. Yang dipakai 3 byte terakhir MAC efuse:
+  // 3 byte pertama cuma OUI Espressif, sama persis di semua unit.
+  static char ssid[sizeof(AP_SSID_PREFIX) + 7] = {0};
+  if (ssid[0] == '\0') {
+    const uint64_t mac = ESP.getEfuseMac();
+    snprintf(ssid, sizeof(ssid), "%s-%02X%02X%02X", AP_SSID_PREFIX,
+             static_cast<uint8_t>(mac >> 24), static_cast<uint8_t>(mac >> 32),
+             static_cast<uint8_t>(mac >> 40));
+  }
+  return ssid;
+}
+
 bool clampConfig(AppConfig &cfg) {
   bool changed = false;
 

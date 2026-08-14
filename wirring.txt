@@ -65,5 +65,8 @@ bukan 1.mp3. Dua-duanya dialamati langsung sama protokol DFPlayer, jadi urutan
 nyalin file ke kartu nggak ngaruh.
 
 akses settings
-konek wifi AP "P5-TIMER" (password ada di AP_PASSWORD src/config.h),
+konek wifi AP "P5-TIMER-XXXXXX" (password ada di AP_PASSWORD src/config.h),
 buka http://192.168.4.1
+
+XXXXXX = 3 byte terakhir MAC chip, beda tiap unit biar dua timer di satu lokasi
+nggak tabrakan SSID-nya. Nama lengkapnya diprint ke serial monitor pas boot.

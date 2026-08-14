@@ -137,8 +137,8 @@ void handleConfigPost(AsyncWebServerRequest *request, JsonVariant &json) {
 
 void webServerInit() {
   WiFi.mode(WIFI_AP);
-  WiFi.softAP(AP_SSID, AP_PASSWORD);
-  DBG_PRINTF("[web] SoftAP \"%s\" di http://%s\n", AP_SSID, WiFi.softAPIP().toString().c_str());
+  WiFi.softAP(apSsid(), AP_PASSWORD);
+  DBG_PRINTF("[web] SoftAP \"%s\" di http://%s\n", apSsid(), WiFi.softAPIP().toString().c_str());
 
   fsMounted = LittleFS.begin(/*formatOnFail=*/true);
   if (!fsMounted) DBG_PRINTLN(F("[web] LittleFS gagal dimount"));
